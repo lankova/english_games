@@ -30,3 +30,8 @@ Built with Python (Flask) for the backend and JavaScript for the frontend.
    ```bash
    git clone https://github.com/Lidia9696/english_games.git
    cd english_games
+
+ ## 📌 Status
+
+This project is in active development. New games and features will be added over time.
+
