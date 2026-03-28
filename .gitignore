@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.pyc
+.env
+
+# Dynamic data (rooms) that changes during the game
+data/rooms.json
+
+# IDE
+.idea/
+
+# System files
+.DS_Store
+Thumbs.db
