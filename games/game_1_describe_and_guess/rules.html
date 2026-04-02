@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- Ensures proper display on mobile devices -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>English Games</title>
+    <!-- Link to external CSS file for styling -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <h1 class="main-title">How to play</h1>
+
+    <p class="howtoplay">
+    One player describes words.<br>
+    Other players try to guess as many words as possible within the time limit.<br><br>
+    Each correct guess = +1 point.<br>
+    You can skip a word. Your score doesn't change if you skip.
+   </p>
+
+    <div class="create-game-container">
+        <button id="createGameBtn">Create new game</button>
+    </div>
+
+    <script>
+        document.getElementById("createGameBtn").onclick = function() {
+        window.location.href = "game.html";
+        };
+    </script>
+
+    <!-- Decorative cat image with rules — adds a friendly touch -->
+    <img class="cat-image-rules" src="orange_cat_rules.jpg" alt="Orange cat reading rules">
+
+</body>
+</html>

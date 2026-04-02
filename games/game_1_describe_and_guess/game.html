@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- Ensures proper display on mobile devices -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Describe and guess</title>
+    <!-- Link to external CSS file for styling -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- Screen 1: enter your name -->
+    <div id="screen-name">
+        <h1>Enter your name</h1>
+        <input type="text" id="playerName" minlength="1">
+
+        <div class="OK">
+             <button id="okBtn">OK</button>
+        </div>
+    </div>
+
+    <!-- Screen 2: waiting -->
+    <div id="screen-waiting" style="display: none;">
+        <h1>Waiting for the players to join in...</h1>
+        <div class="startGame">
+             <button id="startGame">Start the game</button>
+        </div>
+    <!-- Waiting cat — adds a friendly touch -->
+        <img class="waiting-cat" src="WaitingCat.jpg" alt="Waiting cat">
+    </div>
+    <!-- Screen 3: Game -->
+    <div id="screen-game" style="display: none;">
+        <h1>Game screen</h1>
+        <!-- Cards, timer, buttons... -->
+    </div>
+
+    <script>
+
+        // Function to generate a random 4-character room code
+        function generateRoomCode() {
+            const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            let code = "";
+            for (let i = 0; i < 4; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
+        }
+
+        // Handle OK button (name input)
+        document.getElementById("okBtn").onclick = function() {
+            let name = document.getElementById("playerName").value;
+            if (name.length >= 1) {
+                document.getElementById("screen-name").style.display = "none";
+                document.getElementById("screen-waiting").style.display = "block";
+            } else {
+                alert("Name must be at least 1 character");
+            }
+        };
+
+        // Handle Start Game button
+        document.getElementById("startGame").onclick = function() {
+            let roomCode = generateRoomCode();
+            alert("Your room code: " + roomCode);
+            document.getElementById("screen-waiting").style.display = "none";
+            document.getElementById("screen-game").style.display = "block";
+        };
+
+        const cards = [
+            {word: "alias", image: "cards/alias.jpg"},
+            {word: "cyclop", image: "cards/cyclop.jpg"},
+            {word: "penelope", image: "cards/penelope.jpg"},
+            {word: "poseidon", image: "cards/poseidon.jpg"}
+        ];
+    </script>
+
+</body>
+</html>
+

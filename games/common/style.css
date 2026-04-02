@@ -8,9 +8,11 @@
 /* Main page settings — centers everything */
 body {
     background-color: #313030;
-    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     color: #ffffff;            /*White*/
-    min-height: 100vh;         /* full viewport height */
+    min-height: 100vh;         /* full viewport height for all browsers*/
+    min-height: -webkit-fill-available;  /* for old Safari (iPhone) */
+
     display: flex;             /* enable flexbox layout */
     flex-direction: column;    /* stack items vertically */
     justify-content: center;   /* center vertically */
@@ -34,25 +36,33 @@ body {
     margin-bottom: 2rem;
 }
 
-/* Container for game links (buttons) */
+/* Container for game links */
 .links-container {
     display: flex;
     flex-direction: column;   /* buttons stacked vertically */
-    gap: 1rem;               /* space between buttons */
-    margin-bottom: 1.5rem;
 }
 
-/* Button styles */
+/* Add bottom margin to each game link for spacing */
+.links-container a {
+    margin-bottom: 1rem;
+}
+
+/* Remove bottom margin from the last game link to avoid extra space */
+.links-container a:last-child {
+    margin-bottom: 0;
+}
+
+/* Game link styles (styled as buttons for better UX) */
 a {
     background: white;
     color: black;
     padding: 0.8rem 1.5rem;
     border-radius: 10px;
     text-decoration: none;
-    transition: 0.2s;        /* smooth hover effect */
+    transition: none;        /* smooth hover effect */
 }
 
-/* Button hover effect */
+/* Game links hover effect */
 a:hover {
     background: rgb(185, 245, 204);
 }
