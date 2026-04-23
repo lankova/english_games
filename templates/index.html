@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <!-- Ensures proper display on mobile devices -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>English Games</title>
+    <title>Cosmos Games</title>
     <!-- Favicon (website icon) -->
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
     <!-- Styles -->
@@ -13,8 +13,22 @@
 
 <body>
 
+    <!-- Main headline -->
+    <h1 class="main-title">Cosmos Games</h1>
+
+    <div class="glass-plate">
+        <!-- Decorative cat image — adds a friendly touch -->
+        <img class="cat-image" src="{{ url_for('static', filename='common/images/orange_cat.jpg') }}" alt="Orange cat">
+    </div>
+
+    <!-- The name: Cosmos Games -->
+    <h1 style="font-size: 2.5 rem; margin-bottom: 0.5 rem;">Cosmos Gmaes</h1>
+
+
+
     <!-- Main headline: short, catchy, explains the purpose -->
-    <h1 class="main-title">English games</h1>
+    <h1 class="main-title">Play games. Practice English.</h1>
+
 
     <!-- Subtitle: tells the user what to do next -->
     <p class="subtitle">Choose a game:</p>
@@ -22,20 +36,24 @@
     <!-- Container for game game links — uses flexbox for layout -->
     <div class="links-container">
         <!-- Game links: actual game pages will go here -->
-        <a href="{{ url_for('game1_rules') }}">Describe & Guess</a>
-        <a href="#">Unknown traveller</a>
-        <a href="#">Coming soon...</a>
-        <a href="#">Coming soon...</a>
+        <a href="{{ url_for('game1_rules') }}">
+            Logos
+            <span class="game-description">A word-guessing adventure</span>
+        </a>
+
+        <a href="#">
+            The Unknown Traveller
+            <span class="game-description">A game of secrets and deduction</span>
+        </a>
     </div>
 
     <!-- Contact section: user can reach out with questions or suggestions -->
-    <p class="contactme">
-        Questions or suggestions?<br />
-        <a href="https://t.me/lida_egc" target="_blank">t.me/lida_egc</a>
-    </p>
+    <div class="contactme">
+        Any questions or suggestions?<br />
+        <a href="mailto:lankova_lidiya@mail.ru">📧 lankova_lidiya@mail.ru</a>
+        <a href="https://github.com/Lidia9696/english_games" target="_blank" rel="noopener">💻 github.com/Lidia9696/english_games</a>
+    </div>
 
-    <!-- Decorative cat image — adds a friendly touch -->
-    <img class="cat-image" src="{{ url_for('static', filename='common/images/orange_cat.jpg') }}" alt="Orange cat">
 
 </body>
 </html>
