@@ -13,84 +13,128 @@
 </head>
 
 <body>
-    <!-- Screen 1: enter your name -->
-    <div id="screen-name">
-        <h1>Enter your name</h1>
-        <input type="text" id="playerName" minlength="1">
+    <div class="main-card"> <!-- Light card with rounded corners — purely decorative -->
+        <!-- Screen 1: enter your name -->
+        <div id="screen-name">
+            <h1>Enter your name</h1>
+            <input type="text" id="playerName" minlength="1">
 
-        <div class="OK">
-             <button id="okBtn">OK</button>
-        </div>
-    </div>
-
-    <!-- Screen 2: waiting -->
-    <div id="screen-waiting" style="display: none;">
-        <h1>Waiting for the players to join in...</h1>
-        <!-- Players list -->
-        <ul id="players-list"></ul>
-
-        <!-- Start game button (visible only to the host) -->
-        <div class="startGame">
-            <button id="startGame" style="display: none;">Start the game</button>
+            <div class="OK">
+                 <button id="okBtn">OK</button>
+            </div>
         </div>
 
-    <!-- Picture of a waiting cat - adds a friendly touch -->
-        <img class="waiting-cat" src="{{ url_for('static', filename='game_1_describe_and_guess/images/WaitingCat.jpg') }}" alt="Waiting cat">
-    </div>
+        <!-- Screen 2: waiting -->
+        <div id="screen-waiting" style="display: none;">
+            <h1>Waiting<br>
+                for players<br>
+                to join in...
+            </h1>
+            <!-- Players list -->
+            <ul id="players-list"></ul>
 
+            <!-- Start game button (visible only to the host) -->
+            <div class="startGame">
+                <button id="startGame" style="display: none;">Start the game</button>
+            </div>
 
-    <!-- Screen 3: Game -->
-    <div id="screen-game" style="display: none;">
-
-        <!-- Button to become the explainer (shown to all players when game starts) -->
-        <button id="becomeExplainerBtn" style="display: block;">I'll explain</button>
-
-        <!-- Countdown before round starts -->
-        <div id="countdown" style="display: none;">3</div>
-
-        <!-- Timer (visible to all, synchronized) -->
-        <p id="timer-paragraph">Time left: <span id="timer">90</span></p>
-
-        <!-- Cards container (hidden until an explainer is chosen) -->
-        <div class="card-container">
-            <img id="cardImage" class="card-image" src="" alt="Card image">
-            <h2 id="cardWord"></h2>
+        <!-- Picture of a waiting cat - adds a friendly touch -->
+            <img class="waiting-cat" src="{{ url_for('static', filename='game_1_describe_and_guess/images/WaitingCat.jpg') }}" alt="Waiting cat">
         </div>
 
-        <!-- Action buttons (only for the explainer) -->
-        <button id="plusBtn">+1</button>
-        <button id="skipBtn">Skip</button>
 
-        <!-- Message for non-explainers during the round -->
-        <div id="message_non-explainers" style="display: none;">
-            <h3>The explainer is describing the word...</h3>
-        </div>
+        <!-- Screen 3: Game -->
+        <div id="screen-game" style="display: none;">
 
-        <!-- Round result message (hidden by default) -->
-        <div id="round-result" style="display: none;">
-            <h2 id="result-message"></h2>
-        </div>
+            <!-- Explainer prompt -->
+            <p class="explainer-prompt">Who will explain the words?</p>
 
-        <!-- Score table (hidden by default) -->
-        <div id="score-table" style="display: none;">
-            <table id="results-table">
-                   <thead>
-                       <tr><th>Player</th><th>Total Score</th></tr>
-                   </thead>
-                    <tbody></tbody>
-            </table>
-            <button id="next-round-btn">Next round</button>
-        </div>
+            <!-- Button to become the explainer (shown to all players when game starts) -->
+            <button id="becomeExplainerBtn">I'll explain</button>
 
-        <!-- Screen 4: room not found error -->
-        <div id="screen-error" style="display: none;">
-            <h1>The room doesn't exist</h1>
-            <button id="goHomeBtn">Go to the main page</button>
-        </div>
+            <!-- Countdown before round starts -->
+            <div id="countdown" style="display: none;">3</div>
+
+            <!-- Timer (visible to all, hidden until round starts) -->
+            <p class="guessing-timer-label" style="display: none;">Time left</p>
+            <div class="guessing-timer" id="guessing-timer" style="display: none;">90</div>
+
+            <!-- Cards container (hidden until an explainer is chosen) -->
+            <div class="card-container">
+                <h2 id="cardWord"></h2>
+            </div>
+
+            <!-- Action buttons (only for the explainer) -->
+            <div class="action-buttons">
+                <button id="skipBtn">Skip</button>
+                <button id="guessedBtn">Guessed</button>
+            </div>
+
+            <!-- Message for non-explainers during the round -->
+            <div id="message_non-explainers" style="display: none;">
+                <div class="guessing-screen">
+                    <p class="guessing-explainer" id="explainer-message">
+                        <span id="explainer-name">The explainer</span> is describing a word.
+                    </p>
+                    <p class="guessing-cta">Guess it!</p>
+                </div>
+            </div>
+
+            <div id="skipped-cards-dialog" class="skipped-cards-dialog" style="display: none;">
+                <p>There are no cards left.<br>Do you want to play with the skipped cards?</p>
+                <button id="play-skipped-btn">Yes</button>
+                <button id="finish-game-btn">No, finish the game</button>
+            </div>
+
+            <div id="main-cards-finished" class="main-cards-finished" style="display: none;">
+                <p>There are no cards left.</p>
+            </div>
+
+
+            <!-- Round result message (hidden by default) -->
+            <div id="round-result" style="display: none;">
+                <h2 id="result-message"></h2>
+            </div>
+
+            <!-- Score table (hidden by default) -->
+            <div id="score-table" style="display: none;">
+                <table id="results-table">
+                       <thead>
+                           <tr><th>Player</th><th>Total Score</th></tr>
+                       </thead>
+                        <tbody></tbody>
+                </table>
+            </div>
+
+            <button id="next-round-btn" style="display: none;">Next round</button>
+
+            <!-- New game & back buttons (shown when all cards are finished) -->
+            <button id="new-game-btn" style="display: none;">New game</button>
+            <button id="back-to-main-btn" style="display: none;">Back to the main page</button>
+
+
+
+            <!-- Screen 4: room not found error -->
+            <div id="screen-error" style="display: none;">
+                <h1>The room doesn't exist</h1>
+                <button id="goHomeBtn">Go to the main page</button>
+            </div>
+        </div>  <!-- End of screen-game -->
+    </div>  <!-- End of main-card -->
 
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 
     <script>
+
+        function shuffleArray(array) {
+            const shuffled = [...array];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+            return shuffled;
+        }
+
         // Create a WebSocket connection to the server.
         // This socket acts as a two‑way communication channel for live game events.
         const socket = io();
@@ -99,9 +143,12 @@
         let playerName = null;
         let cards = [];
         let currentIndex = 0; // Track which card from the deck is currently being shown to the explainer.
+        let skippedCards = [];  // Store skipped cards for reuse
         let score = 0;
+        let explainerName = null;
         let isHost = false;  // Track if current player is the room host
         let hostToken = null;
+        let allCardsDone = false;
         const savedHostToken = sessionStorage.getItem('hostToken');
         if (savedHostToken) hostToken = savedHostToken;
 
@@ -120,10 +167,10 @@
         }
 
         // ---------- Load cards from JSON ----------
-        fetch('/static/game_1_describe_and_guess/data/cards.json')
+        fetch('/static/game_1_describe_and_guess/data/words.json')
             .then(response => response.json())
             .then(data => {
-                cards = data;
+                cards = shuffleArray(data);
                 showCard(0);
             })
             .catch(error => console.error('Upload error:', error));
@@ -163,34 +210,45 @@
 
 
         function showCard(index) {
-            console.log('showCard called, index:', index, 'cards length:', cards.length); //For debug only
             if (cards.length === 0) return;
             if (index < cards.length) {
-                document.getElementById('cardWord').textContent = cards[index].word;
-                document.getElementById('cardImage').src = cards[index].image;
+                document.getElementById('cardWord').textContent = cards[index];
+                document.getElementById('cardWord').style.display = 'block';
             } else {
-                endRound();
+                // No more cards
+                if (skippedCards.length === 0) {
+                    allCardsDone = true;  // all cards are done
+
+                    document.getElementById('cardWord').style.display = 'none';
+                    document.getElementById('main-cards-finished').style.display = 'block';
+                    document.getElementById('next-round-btn').style.display = 'none';
+                    document.getElementById('new-game-btn').style.display = 'block';
+                    document.getElementById('back-to-main-btn').style.display = 'block';
+
+                    endRound();
+                } else {
+                    // Ask if they want to replay skipped cards
+                    document.getElementById('skipped-cards-dialog').style.display = 'block';
+                }
             }
         }
 
         function endRound() {
             // Hide UI elements
-            document.getElementById('timer-paragraph').style.display = 'none';
-            document.getElementById('plusBtn').style.display = 'none';
+            document.getElementById('guessedBtn').style.display = 'none';
             document.getElementById('skipBtn').style.display = 'none';
-            document.getElementById('cardImage').style.display = 'none';
             document.getElementById('cardWord').style.display = 'none';
+            document.getElementById('main-cards-finished').style.display = 'none';
+            document.getElementById('skipped-cards-dialog').style.display = 'none';
 
-            // Show result message
-            document.getElementById('round-result').style.display = 'block';
-            document.getElementById('result-message').textContent = `${playerName} got ${score} points!`;
 
             // Send round data to server
             socket.emit('round_end', {
                 room_code: currentRoomCode,
                 player: playerName,
-                round_score: score
+                round_score: Number(score)
                 });
+                score = 0;
             }
 
         function nextCard() {
@@ -246,56 +304,76 @@
             document.getElementById('becomeExplainerBtn').style.display = 'block';
             // Hide other elements initially
             document.querySelector('.card-container').style.display = 'none';
-            document.getElementById('plusBtn').style.display = 'none';
+            document.getElementById('guessedBtn').style.display = 'none';
             document.getElementById('skipBtn').style.display = 'none';
             document.getElementById('message_non-explainers').style.display = 'none';
             document.getElementById('countdown').style.display = 'none';
-            document.getElementById('timer-paragraph').style.display = 'none';
+            document.getElementById('next-round-btn').style.display = 'none';
         });
 
 
         socket.on('round_started', (data) => {
-            // Hide "I'll explain" button for everyone
-            document.getElementById('becomeExplainerBtn').style.display = 'none';
-            document.getElementById('timer-paragraph').style.display = 'none'; // hide during countdown
+            explainerName = data.explainer;
+            document.getElementById('explainer-name').textContent = explainerName;
 
-            // Show countdown for ALL players
+            // Hide "I'll explain" button and prompt for everyone
+            document.querySelector('.explainer-prompt').style.opacity = '0';
+            document.getElementById('becomeExplainerBtn').style.display = 'none';
+            document.getElementById('becomeExplainerBtn').style.pointerEvents = 'none';
+
+            // CHECK LATE JOIN FIRST — before showing countdown
+            if (data.late_join) {
+                // Late joiner — skip countdown, go straight to the round
+                // Late joiner is always a guesser for that round
+                document.getElementById('guessing-timer').style.display = 'block';
+                document.querySelector('.guessing-timer-label').style.display = 'block';
+                document.getElementById('message_non-explainers').style.display = 'block';
+                document.querySelector('.card-container').style.display = 'none';
+                document.getElementById('guessedBtn').style.display = 'none';
+                document.getElementById('skipBtn').style.display = 'none';
+                return;
+            }
+
+            // Normal flow — show countdown
             document.getElementById('countdown').style.display = 'block';
             document.getElementById('countdown').textContent = '3';
+
 
             if (data.explainer === playerName) {
                 // This client is the explainer
                 startCountdown(() => {
                 // Countdown finished - now start the real timer on server
                 socket.emit('start_timer', { room_code: currentRoomCode });
+                document.querySelector('.guessing-timer-label').style.display = 'block';
+                document.getElementById('guessing-timer').style.display = 'block';
+                document.getElementById('guessing-timer').textContent = data.duration;
                 // Show card, buttons, timer
                     document.querySelector('.card-container').style.display = 'block';
-                    document.getElementById('plusBtn').style.display = 'inline-block';
+                    document.getElementById('guessedBtn').style.display = 'inline-block';
                     document.getElementById('skipBtn').style.display = 'inline-block';
                     document.getElementById('message_non-explainers').style.display = 'none';
                     showCard(currentIndex);
-                    document.getElementById('timer-paragraph').style.display = 'block';
                 });
             } else {
                 // Non-explainer — also see the countdown
                 startCountdown(() => {
                     // Countdown finished, show waiting message
+                    document.querySelector('.guessing-timer-label').style.display = 'block';
+                    document.getElementById('guessing-timer').style.display = 'block';
                     document.getElementById('message_non-explainers').style.display = 'block';
                 });
                 // Hide explainer-only elements
                 document.querySelector('.card-container').style.display = 'none';
-                document.getElementById('plusBtn').style.display = 'none';
+                document.getElementById('guessedBtn').style.display = 'none';
                 document.getElementById('skipBtn').style.display = 'none';
             }
         });
 
         socket.on('timer_update', (data) => {
-            document.getElementById('timer').textContent = data.time_left;
-            document.getElementById('timer-paragraph').style.display = 'block';
+            document.getElementById('guessing-timer').textContent = data.time_left;
         });
 
         socket.on('round_timeout', () => {
-            document.getElementById('timer-paragraph').style.display = 'none';
             endRound();
         });
 
@@ -321,11 +399,41 @@
 
         socket.on('scoreboard_update', (data) => {
             // Hide round UI elements for ALL players
-            document.getElementById('timer-paragraph').style.display = 'none';
-            document.getElementById('plusBtn').style.display = 'none';
+            document.getElementById('guessing-timer').style.display = 'none';
+            document.querySelector('.guessing-timer-label').style.display = 'none';
+            document.getElementById('guessedBtn').style.display = 'none';
             document.getElementById('skipBtn').style.display = 'none';
             document.querySelector('.card-container').style.display = 'none';
             document.getElementById('message_non-explainers').style.display = 'none';
+            document.getElementById('countdown').style.display = 'none';
+            document.getElementById('becomeExplainerBtn').style.display = 'none';
+            document.querySelector('.explainer-prompt').style.display = 'none';
+            document.getElementById('screen-waiting').style.display = 'none';
+            document.getElementById('screen-game').style.display = 'block';
+
+            document.getElementById('round-result').style.display = 'block';
+            // Show who scored and how much this round
+            if (data.last_round) {
+                document.getElementById('result-message').textContent =
+                    `${data.last_round.player} got ${data.last_round.score} points this round!`;
+            } else {
+                document.getElementById('result-message').textContent = 'Round finished!';
+            }
+
+            // Show/hide buttons based on the role
+            if (!isHost) {
+                document.getElementById('next-round-btn').style.display = 'none';
+            } else if (allCardsDone) {
+                // All cards done - show final buttons, not Next round
+                document.getElementById('next-round-btn').style.display = 'none';
+                document.getElementById('new-game-btn').style.display = 'block';
+                document.getElementById('back-to-main-btn').style.display = 'block';
+            } else {
+                // Host sees Next round button
+                document.getElementById('next-round-btn').style.display = 'block';
+                document.getElementById('new-game-btn').style.display = 'none';
+                document.getElementById('back-to-main-btn').style.display = 'block';
+            }
 
             const tbody = document.querySelector('#results-table tbody');
             tbody.innerHTML = '';
@@ -351,13 +459,29 @@
         };
 
         socket.on('next_round_ready', () => {
-            // Reset local UI for a new round
+            // Reset for a new round
+            document.getElementById('guessing-timer').style.display = 'none';
+            document.querySelector('.guessing-timer-label').style.display = 'none';
+            allCardsDone = false;
+            document.getElementById('explainer-name').textContent = 'The explainer';
             score = 0;
             currentIndex = 0;
+
+            // Hide result and score table
             document.getElementById('round-result').style.display = 'none';
             document.getElementById('score-table').style.display = 'none';
+            document.getElementById('next-round-btn').style.display = 'none';
+            document.getElementById('new-game-btn').style.display = 'none';
+            document.getElementById('back-to-main-btn').style.display = 'none';
+
+            // Show explainer selection screen
+            document.querySelector('.explainer-prompt').style.display = '';
+            document.querySelector('.explainer-prompt').style.opacity = '1';
             document.getElementById('becomeExplainerBtn').style.display = 'block';
-            document.getElementById('timer-paragraph').style.display = 'none';
+            document.getElementById('becomeExplainerBtn').style.pointerEvents = 'auto';
+
+
+            // Card stays hidden until explainer is chosen and countdown finishes
             document.querySelector('.card-container').style.display = 'none';
         });
 
@@ -423,14 +547,22 @@
             }
         };
 
-        document.getElementById('plusBtn').onclick = () => {
+        document.getElementById('guessedBtn').onclick = () => {
             if (currentIndex < cards.length) {
                 score++;
+
+                // Send score update to server
+                socket.emit('score_update', {
+                    room_code: currentRoomCode,
+                    increment: 1
+                });
+
                 nextCard();
             }
         };
 
         document.getElementById('skipBtn').onclick = () => {
+            skippedCards.push(cards[currentIndex]); // Save skipped cards
             nextCard();
         };
 
@@ -439,13 +571,31 @@
 
         // Become explainer button
         document.getElementById('becomeExplainerBtn').onclick = () => {
+            document.querySelector('.explainer-prompt').style.display = 'none';
             socket.emit('become_explainer', {
                 room_code: currentRoomCode,
                 player_name: playerName
             });
         };
 
-        </script>
+        // If there are no cards left
+        // Yes button — shuffle skipped cards and continue
+        document.getElementById('play-skipped-btn').onclick = () => {
+            document.getElementById('skipped-cards-dialog').style.display = 'none';
+            cards = shuffleArray([...skippedCards]);
+            skippedCards = [];
+            currentIndex = 0;
+            allCardsDone = false;
+            showCard(0);
+        };
+
+
+        // No — finish the game
+        document.getElementById('finish-game-btn').onclick = () => {
+            document.getElementById('skipped-cards-dialog').style.display = 'none';
+            endRound();
+        };
+    </script>
 
 </body>
 </html>

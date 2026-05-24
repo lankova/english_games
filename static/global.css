@@ -5,34 +5,78 @@
     box-sizing: border-box;
 }
 
-/* Main page settings — centers everything */
+html, body {
+    height: 100%;
+    margin: 0;
+}
+
+/* Main page settings */
 body {
     background-color: #313030;
     /* System font stack for maximum performance — no external requests, instant rendering */
     font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    color: #ffffff;            /*White*/
+    color: #ffffff;            /* White */
     min-height: 100vh;         /* full viewport height for all browsers*/
-    min-height: -webkit-fill-available;  /* for old Safari (iPhone) */
+    min-height: 100dvh;        /* For mobile devices */
+    min-height: -webkit-fill-available;  /* for old Safari */
 
-    display: flex;             /* enable flexbox layout */
-    flex-direction: column;    /* stack items vertically */
-    justify-content: center;   /* center vertically */
-    align-items: center;       /* center horizontally */
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    align-items: center;
     text-align: center;
-    padding: 2rem;
+    padding: 2rem;   /* Breathing room on small screens */
+    margin: 0;
 }
 
-/* Subtitle - Choose a game*/
-.subtitle {
-    font-size: 1.2rem;
-    color: #ccc;
+/* Light vertical card — wraps all content */
+.main-card {
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 2.5rem;
+    max-width: 500px;
+    width: 100%;
+    max-height: calc(100dvh - 4rem);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+
+.main-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+
+/* ========== HEADINGS ========== */
+/* Primary site title - Play games. Practice English. */
+.main-title {
+    font-size: 2rem;
+    font-weight: 700; /* Bold */
     margin-bottom: 2rem;
+    padding-top: 1rem;
+    letter-spacing: 2px;
+}
+
+/* Choose a game */
+.subtitle {
+    font-size: 1.1rem;
+    color: #ddd;
+    margin-bottom: 1.5rem;
+    font-weight: 500; /* Medium weight for emphasis */
 }
 
 /* Container for game links */
 .links-container {
     display: flex;
-    flex-direction: column;   /* buttons stacked vertically */
+    flex-direction: column;   /* buttons are stacked vertically */
+    margin-bottom: 1.5rem;
 }
 
 /* Add bottom margin to each game link for spacing */
@@ -47,7 +91,8 @@ body {
 
 /* Common style for all elements that look like buttons.
 Game links are styled as buttons for better UX. */
-a, .btn {
+.links-container a,
+.btn {
     background: white;
     color: black;
     padding: 0.8rem 1.5rem;
@@ -57,36 +102,70 @@ a, .btn {
     transition: none;
 }
 
-a:hover, .btn:hover {
-    background: rgb(185, 245, 204);
+/* Hover state - soft mint green feedback */
+.links-container a:hover,
+.btn:hover,
+#okBtn:hover,
+#startGame:hover,
+#becomeExplainerBtn:hover,
+#new-game-btn:hover,
+#back-to-main-btn:hover,
+#next-round-btn:hover {
+    background: rgb(191, 230, 207);
 }
 
+/* Small descriptive text under each game title (e.g., "A word-guessing adventure") */
 .game-description {
     display: block;
     font-size: 0.8rem;
-    color: #aaa;
+    color: #666; /* Dark grey */
     margin-top: 5px;
     font-weight: normal;
 }
 
+.cat-wrapper {
+    display: flex;
+    justify-content: center;
+    margin-top: auto;
+    }
+
 /* Cat image */
 .cat-image {
     width: 100%;
-    max-width: 200px;
+    max-width: 270px;
     height: auto;
-    margin-top: 1.5rem;
-    margin-bottom: 1.5rem;
-    border-radius: 16px;
+    margin-bottom: 0.5rem;
+    border-radius: 16px; /* Soft rounded corners */
 }
 
-/* Contact info at the bottom */
+/* Contact me */
+/* Container for the entire contact block */
 .contactme {
-color: #aaa;
-font-size: 0.9 rem;
+    padding-bottom: 1rem;
+    color: #aaa;
+    font-size: 0.8rem;
+    text-align: center;
+    width: 100%;
+    margin-top: auto;
+}
+
+/* The prompt "Any questions or suggestions?" */
+.contactme-questions {
+    margin-bottom: 0.2rem;
+    font-size: 1rem; /* Readable size */
+    color: #ccc;
+}
+
+/* Wrapper for the email and GitHub links - stacks them vertically */
+.contactme-links {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem; /* Space between stacked links */
+    align-items: center;
 }
 
 .contactme a {
-    color: inherit;
+    color: inherit;  /* Takes #aaa from .contactme */
     text-decoration: none;
     background: transparent;
     padding: 0;
@@ -97,10 +176,24 @@ font-size: 0.9 rem;
     background: transparent;
 }
 
-/* Game 1 — Describe & Guess (game.html) */
+@media (max-width: 768px) {
+    .contactme {
+        margin-top: 1rem;
+    }
+}
+
+/* ----------- Game 1 — Describe & Guess ---------*/
+/* ------------ The rules (rules.html) ----------*/
+.rules-title {
+    font-size: 2rem;
+    font-weight: 700; /* Bold */
+    margin: 3rem auto -1.5rem;
+    letter-spacing: 2px;
+}
+
 .howtoplay {
     max-width: 32rem;
-    margin: 0 auto 1.5rem;
+    margin: 0rem; auto 0rem;
     line-height: 1.5;
     color: #ddd;
 }
@@ -113,6 +206,12 @@ font-size: 0.9 rem;
     border-radius: 16px;
 }
 
+/* ------------------ game.html -------------*/
+
+#screen-name {
+    padding-top: 3rem;
+}
+
 #screen-name input[type="text"] {
     margin: 1rem 0;
     padding: 0.5rem 0.75rem;
@@ -120,11 +219,15 @@ font-size: 0.9 rem;
     border-radius: 8px;
     border: none;
     min-width: 12rem;
+    text-align: center;
 }
 
+/* ---- okBtn - submit player name to join the game ---- */
 #okBtn,
-#startGame {
-    margin-top: 0.5rem;
+#startGame,
+#becomeExplainerBtn,
+#next-round-btn {
+    margin: 0.5rem auto 0;
     padding: 0.6rem 1.25rem;
     font-size: 1rem;
     border-radius: 10px;
@@ -134,31 +237,327 @@ font-size: 0.9 rem;
     color: #111;
 }
 
-#okBtn:hover,
-#startGame:hover {
-    background: rgb(185, 245, 204);
+#screen-waiting {
+    text-align: center;
+}
+
+#players-list {
+    margin-top: 3rem;
+    margin-bottom: 3rem;
+    padding-left: 0;
+    list-style-position: inside;
+}
+
+#players-list li {
+    margin-bottom: 0.3rem;
+    font-size: 1.1rem;
+    color: #ddd;
+}
+
+.waiting-cat {
+    margin-top: 3rem;
+    margin-bottom: 3rem;
+}
+
+/* ---- Start Game button — only the host can see it ---- */
+.startGame {
+    margin-top: 3rem;
+    margin-bottom: 3rem;
+}
+
+#screen-game {
+    width: 100%;
+    text-align: center;
+    position: relative;
+}
+
+/* ---- Who will explain the words? ---- */
+.explainer-prompt {
+    font-size: 1rem;
+    color: #ddd;
+    margin-bottom: 1rem;
+    margin: 4rem auto 1.3rem;
 }
 
 #countdown {
-    position: absolute;
+    position: fixed;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     font-size: 4rem;
     font-weight: bold;
     color: white;
-    background: rgba(0,0,0,0.7);
+    background: rgba(0, 0, 0, 0.7);
     padding: 1rem 2rem;
     border-radius: 20px;
     z-index: 10;
 }
 
-<div id="countdown" style="display: none; font-size: 4rem; text-align: center;">3</div>
+/* Card container - papyrus background for all cards */
+.card-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
-.card-image {
+    /* Papyrus as background */
+    background-image: url('/static/game_1_describe_and_guess/images/papyrus.png');
+    background-size: 100% 100%;
+    background-position: center;
+    background-repeat: no-repeat;
+
+    /* Card dimensions */
+    width: 336px;
+    min-height: 504px;
+    padding: 3rem 1.5rem;
+    margin: 1rem auto;
+}
+
+/* Word on the card */
+#cardWord {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #2c1810;
+    text-align: center;
+    z-index: 1;
+    padding: 0;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     width: 100%;
-    max-width: 300px;
-    height: auto;
+    word-wrap: break-word;
+}
+
+
+/* ---- Action buttons (skip and guessed), for the explainer only ---- */
+.action-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 0.25rem;
+}
+
+/* ---- Guessed and Skip buttons ---- */
+#guessedBtn,
+#skipBtn {
+    width: 160px;
+    height: 130px;
+    padding: 1rem 0;
+    font-size: 1.3rem;
+    font-weight: 600;
+    font-family: 'Georgia', serif;
+    color: #2c1810;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+/* Skip button - muted gray */
+#skipBtn {
+    background: #e0dcd5;
+    border: 2px solid #8b8b8b;
+    outline: 1px solid #bfbfbf;
+    outline-offset: -5px;
+}
+
+#skipBtn:hover {
+    background: #d2cec7;
+}
+
+/* Guessed button - green */
+#guessedBtn {
+    background: #b7c9a8;
+    border: 2px solid #6b8a5e;
+    outline: 1px solid #a0bf90;
+    outline-offset: -5px;
+}
+
+#guessedBtn:hover {
+    background: #a0b88e;
+}
+
+#guessedBtn:active,
+#skipBtn:active {
+    transform: scale(0.96);
+    box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+
+
+/* ---- Timer (same width as buttons row) ---- */
+.guessing-timer {
+    width: 336px;               /* 160 + 16 + 160 */
+    font-size: 3.5rem;
+    font-weight: 700;
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 0.5rem 0;
+    margin: 0.5rem auto 1rem auto;
+    text-align: center;
+}
+
+/* ---- Guessing screen (non-explainer view) ---- */
+.guessing-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.guessing-timer-label {
+    font-size: 0.9rem;
+    color: #aaa;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 0.5rem;
+}
+
+.guessing-timer {
+    font-size: 3.5rem;
+    font-weight: 700;
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 0.5rem 1rem;
+    margin: 0 auto 1rem auto;
+    min-width: 80px;
+}
+
+.guessing-explainer {
+    font-size: 1.2rem;
+    color: #ccc;
+    margin-top: 1rem;
+}
+
+#explainer-name {
+    color: #f4a261;
+    font-weight: 600;
+}
+
+.guessing-cta {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #ffffff;
+    margin-top: 0.5rem;
+}
+
+
+.skipped-cards-dialog {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: #2a2a2a;
+    border-radius: 16px;
+    padding: 2rem;
+    text-align: center;
+    z-index: 20;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.skipped-cards-dialog p {
+    margin-bottom: 1.5rem;
+    font-size: 1.1rem;
+    color: #ddd;
+}
+
+.skipped-cards-dialog button {
+    margin: 0 0.5rem;
+    padding: 0.5rem 1.5rem;
+    font-size: 1rem;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    background: white;
+    color: #111;
+}
+
+/* ---- There're no cards left message ---- */
+.main-cards-finished {
+    display: none;
+    margin-top: 2rem;
+    text-align: center;
+}
+
+.main-cards-finished p {
+    font-size: 1.2rem;
+    color: #ddd;
+    margin-bottom: 1.5rem;
+}
+
+#results-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+}
+
+#results-table th {
+    text-align: center;
+    padding: 0.5rem 1rem;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+    color: #ccc;
+    font-weight: 600;
+}
+
+#results-table td {
+    text-align: center;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: #ddd;
+}
+
+#results-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+
+#new-game-btn,
+#back-to-main-btn {
     display: block;
-    margin: 0 auto;
+    margin: 0.5rem auto 0;
+    padding: 0.6rem 1.25rem;
+    font-size: 1rem;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    background: white;
+    color: #111;
+}
+
+#back-to-main-btn {
+    margin-top: 0.5rem;
+}
+
+
+/* Mobile adaptation */
+@media (max-width: 768px) {
+    body {
+    background-image: none; /* Remove heave space image for performance and clarity */
+    padding: 2rem;
+    }
+
+    /* Glass plate becomes almost opaque, no blur */
+    .glass-plate {
+        background: rgba(18, 22, 38, 0.95);
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        border-radius: 20px;
+        padding: 1.5rem;
+        max-width: 100%;
+        box-shadow: none;
+        border: none;
+    }
+
+    /* Slightly smaller main title on mobile */
+    .main-title {
+        font-size: 2.5rem;
+    }
+
+    /* Smaller cat image to save vertical space */
+    .cat-image {
+        max-width: 140px;
+    }
 }

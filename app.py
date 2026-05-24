@@ -7,6 +7,7 @@ import string
 import secrets # for secure token generation (for the host)
 import time
 import threading
+import json
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -18,6 +19,9 @@ socketio = SocketIO(app, cors_allowed_origins="*")
 # Structure: { room_code: { 'players': {'name': score}, 'game_started': False } }
 rooms = {}
 
+# Load words for the game
+with open('static/game_1_describe_and_guess/data/words.json', 'r', encoding='utf-8') as f:
+    words = json.load(f)
 
 def generate_room_code():
     """Generate random 4-character room code (letters + digits)"""
@@ -127,6 +131,33 @@ def handle_join_room(data):
         'players': list(room_data['players'].keys())
     }, to=room_code)
 
+    # Send current game state to the newly joined player
+    if room_data.get('game_started'):
+        emit('game_started', to=request.sid)
+
+        if room_data.get('round_active') and room_data.get('explainer'):
+            # Round is live
+            emit('round_started', {
+                'explainer': room_data['explainer'],
+                'duration': room_data['duration'],
+                'late_join': True
+            }, to=request.sid)
+
+        elif room_data.get('last_round'):
+            # Round just finished
+            scoreboard = [{'name': name, 'display': str(total)} for name, total in room_data['players'].items()]
+
+            emit('scoreboard_update', {
+                'scoreboard': scoreboard,
+                'last_round': room_data['last_round']
+            }, to=request.sid)
+
+            emit('scoreboard_update', {
+                'scoreboard': scoreboard,
+                'last_round': room_data['last_round']
+            }, to=room_code)
+
+
 @socketio.on('start_game')
 def handle_start_game(data):
     """
@@ -166,6 +197,8 @@ def handle_become_explainer(data):
         'duration': room_data['duration']
     }, to=room_code)
 
+    room_data.pop('last_round', None)
+
 def start_round_timer(room_code):
     if room_code not in rooms:
         return
@@ -179,10 +212,22 @@ def start_round_timer(room_code):
             time.sleep(1)
             time_left -= 1
         if rooms[room_code]['round_active']:
+            # Save last_round before resetting
+            rooms[room_code]['last_round'] = {
+                'player': rooms[room_code]['explainer'],  # explainer who got 0 points
+                'score': 0
+            }
+
             rooms[room_code]['round_active'] = False
             rooms[room_code]['explainer'] = None
             socketio.emit('round_timeout', to=room_code)
 
+            # Send scoreboard with last_round
+            scoreboard = [{'name': name, 'display': str(total)} for name, total in rooms[room_code]['players'].items()]
+            socketio.emit('scoreboard_update', {
+                'scoreboard': scoreboard,
+                'last_round': rooms[room_code]['last_round']
+            }, to=room_code)
 
     old = rooms[room_code].get('timer_thread')
     if old and old.is_alive():
@@ -199,42 +244,73 @@ def handle_start_timer(data):
     if room_code not in rooms:
         return
     room_data = rooms[room_code]
+    room_data.pop('last_round', None)
     if not room_data['round_active'] and room_data['explainer'] is not None:
         room_data['round_active'] = True
         # Send initial timer value immediately so non-explainers see it
         emit('timer_update', {'time_left': room_data['duration']}, to=room_code)
         start_round_timer(room_code)
 
-@socketio.on('round_end')
-def handle_round_end(data):
-    """Handle end of round: update scores and send scoreboard"""
+
+@socketio.on('score_update')
+def handle_score_update(data):
     room_code = data.get('room_code')
-    player = data.get('player')
-    round_score = data.get('round_score')
+    increment = data.get('increment', 0)
 
     if room_code not in rooms:
         return
+
     room_data = rooms[room_code]
-    if not room_data['round_active']:
+
+    if 'round_score' not in room_data:
+        room_data['round_score'] = 0
+    room_data['round_score'] += increment
+
+@socketio.on('round_end')
+def handle_round_end(data):
+    room_code = data.get('room_code')
+    player = data.get('player')
+    round_score = data.get('round_score')
+    client_score = data.get('round_score', 0)
+
+    if room_code not in rooms:
         return
 
-    room_data['round_active'] = False
-    room_data['explainer'] = None
+    room_data = rooms[room_code]
 
-    # Update player's total score
+    round_score = room_data.pop('round_score', client_score)
+
+    # Update total score
     if player in room_data['players']:
         room_data['players'][player] += round_score
 
+    # Store last round info
+    room_data['last_round'] = {
+        'player': player,
+        'score': round_score
+    }
+
+    # Build scoreboard
     scoreboard = [{'name': name, 'display': str(total)} for name, total in room_data['players'].items()]
-    emit('scoreboard_update', {'scoreboard': scoreboard}, to=room_code)
+
+    emit('scoreboard_update', {
+        'scoreboard': scoreboard,
+        'last_round': room_data['last_round']
+    }, to=room_code)
+
+    # Reset round state
+    room_data['round_active'] = False
+    room_data['explainer'] = None
 
 @socketio.on('next_round')
 def handle_next_round(data):
     room_code = data.get('room_code')
     if room_code not in rooms:
         return
-    rooms[room_code]['round_active'] = False
-    rooms[room_code]['explainer'] = None
+    room_data = rooms[room_code]
+    room_data['round_active'] = False
+    room_data['explainer'] = None
+    room_data.pop('last_round', None)
     emit('next_round_ready', to=room_code)
 
 # Check if a room exists before the player tries to join

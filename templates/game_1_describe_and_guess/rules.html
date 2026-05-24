@@ -12,20 +12,19 @@
 </head>
 
 <body>
+    <div class="main-card"> <!-- Light card with rounded corners — purely decorative -->
+        <h1 class="rules-title">Rules</h1>
+        <p class="howtoplay">
+        One player describes words.<br>
+        Other players try to guess as many words as possible within the time limit (90 seconds).<br><br>
+        Each correct guess gives 1 point to the explainer.<br>
+        The explainer can skip words. The score doesn't change if they skip.
+       </p>
 
-    <h1 class="main-title">How to play</h1>
+        <a href="{{ url_for('game1_game') }}" class="btn">Create new game</a>
 
-    <p class="howtoplay">
-    One player describes words.<br>
-    Other players try to guess as many words as possible within the time limit.<br><br>
-    Each correct guess = +1 point.<br>
-    You can skip a word. Your score doesn't change if you skip.
-   </p>
-
-    <a href="{{ url_for('game1_game') }}" class="btn">Create new game</a>
-
-    <!-- Decorative cat image with rules — adds a friendly touch -->
-    <img class="cat-image" src="{{ url_for('static', filename='common/images/orange_cat_rules.jpg') }}" alt="Orange cat">
-
+        <!-- Decorative cat image with rules — adds a friendly touch -->
+        <img class="cat-image" src="{{ url_for('static', filename='common/images/orange_cat_rules.jpg') }}" alt="Orange cat">
+    </div>
 </body>
 </html>
