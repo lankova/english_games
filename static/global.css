@@ -8,37 +8,52 @@
 html, body {
     height: 100%;
     margin: 0;
+    overflow: hidden;
+}
+
+:root {
+    /* Phone: square card */
+    --card-max-w: 300px;
+    --card-ratio: 1 / 1;
+    --card-vw: 85vw;
+    --game-gap: 0.75rem;
+    --game-inline-pad: 1.25rem;
+    --plate-w: min(500px, calc(100vw - 4rem));
+    --plate-h: calc(100dvh - 4rem);
+    --page-pad: 2rem;
 }
 
 /* Main page settings */
 body {
     background-color: #313030;
-    /* System font stack for maximum performance — no external requests, instant rendering */
+    /* System font stack for maximum performance - no external requests, instant rendering */
     font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     color: #ffffff;            /* White */
     min-height: 100vh;         /* full viewport height for all browsers*/
     min-height: 100dvh;        /* For mobile devices */
     min-height: -webkit-fill-available;  /* for old Safari */
+    padding: var(--page-pad);
+
 
     display: flex;
     justify-content: center;
     flex-direction: column;
     align-items: center;
     text-align: center;
-    padding: 2rem;   /* Breathing room on small screens */
     margin: 0;
 }
 
-/* Light vertical card — wraps all content */
+/* Light vertical card - wraps all content */
 .main-card {
     background: rgba(255, 255, 255, 0.06);
     border-radius: 24px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     padding: 2.5rem;
-    max-width: 500px;
-    width: 100%;
-    max-height: calc(100dvh - 4rem);
-    overflow-y: auto;
+    width: var(--plate-w);
+    height: var(--plate-h);
+    min-height: var(--plate-h);
+    max-width: none;
+    overflow: hidden;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -109,9 +124,12 @@ Game links are styled as buttons for better UX. */
 #startGame:hover,
 #becomeExplainerBtn:hover,
 #new-game-btn:hover,
-#back-to-main-btn:hover,
 #next-round-btn:hover {
     background: rgb(191, 230, 207);
+}
+
+#back-to-main-btn:hover {
+    background: rgb(220, 220, 220);
 }
 
 /* Small descriptive text under each game title (e.g., "A word-guessing adventure") */
@@ -182,18 +200,27 @@ Game links are styled as buttons for better UX. */
     }
 }
 
-/* ----------- Game 1 — Describe & Guess ---------*/
+/* ----------- Game 1 - Describe & Guess ---------*/
 /* ------------ The rules (rules.html) ----------*/
+.rules-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+
 .rules-title {
+     margin: 0;
+    padding-top: 0.5rem;
     font-size: 2rem;
-    font-weight: 700; /* Bold */
-    margin: 3rem auto -1.5rem;
+    font-weight: 700;
     letter-spacing: 2px;
 }
 
 .howtoplay {
     max-width: 32rem;
-    margin: 0rem; auto 0rem;
+    margin: 0;
     line-height: 1.5;
     color: #ddd;
 }
@@ -209,7 +236,13 @@ Game links are styled as buttons for better UX. */
 /* ------------------ game.html -------------*/
 
 #screen-name {
-    padding-top: 3rem;
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
 }
 
 #screen-name input[type="text"] {
@@ -239,11 +272,18 @@ Game links are styled as buttons for better UX. */
 
 #screen-waiting {
     text-align: center;
+    width: 100%;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
 }
 
 #players-list {
-    margin-top: 3rem;
-    margin-bottom: 3rem;
+    margin-top: 1.25rem;
+    margin-bottom: 1.25rem;
     padding-left: 0;
     list-style-position: inside;
 }
@@ -255,28 +295,35 @@ Game links are styled as buttons for better UX. */
 }
 
 .waiting-cat {
-    margin-top: 3rem;
-    margin-bottom: 3rem;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    max-width: min(200px, 55vw);
 }
 
-/* ---- Start Game button — only the host can see it ---- */
+/* ---- Start Game button - only the host can see it ---- */
 .startGame {
-    margin-top: 3rem;
-    margin-bottom: 3rem;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
 }
 
 #screen-game {
     width: 100%;
+    flex: 1;
+    min-height: 0;
     text-align: center;
     position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.5rem;
 }
 
 /* ---- Who will explain the words? ---- */
 .explainer-prompt {
     font-size: 1rem;
     color: #ddd;
-    margin-bottom: 1rem;
-    margin: 4rem auto 1.3rem;
+    margin: 0 auto 0.75rem;
 }
 
 #countdown {
@@ -293,29 +340,43 @@ Game links are styled as buttons for better UX. */
     z-index: 10;
 }
 
-/* Card container - papyrus background for all cards */
+/* Card - phone: square (papyrus2); desktop: vertical (papyrus) - see @media below */
 .card-container {
     position: relative;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 
-    /* Papyrus as background */
-    background-image: url('/static/game_1_describe_and_guess/images/papyrus.png');
-    background-size: 100% 100%;
-    background-position: center;
+    width: min(var(--card-max-w), var(--card-vw));
+    aspect-ratio: var(--card-ratio);
+    margin: 0 auto;
+    padding: clamp(1rem, 4vw, 1.75rem);
+
+    background-image: url('/static/game_1_describe_and_guess/images/papyrus2.png');
     background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+}
 
-    /* Card dimensions */
-    width: 336px;
-    min-height: 504px;
-    padding: 3rem 1.5rem;
-    margin: 1rem auto;
+/* Desktop: vertical papyrus card */
+@media (min-width: 481px) {
+    :root {
+        --card-max-w: 336px;
+        --card-ratio: 2 / 3;
+        --card-vw: 90vw;
+    }
+
+    .card-container {
+        padding: clamp(1.5rem, 6vw, 3rem) var(--game-inline-pad);
+        background-image: url('/static/game_1_describe_and_guess/images/papyrus.png');
+    }
 }
 
 /* Word on the card */
 #cardWord {
-    font-size: 2.5rem;
+    font-size: clamp(1.5rem, 6vw, 2.5rem);
+    max-width: 85%;
     font-weight: 700;
     color: #2c1810;
     text-align: center;
@@ -336,14 +397,18 @@ Game links are styled as buttons for better UX. */
     justify-content: center;
     gap: 1rem;
     margin-top: 0.25rem;
+    flex-wrap: wrap;
+    max-width: 100%;
 }
 
-/* ---- Guessed and Skip buttons ---- */
+/* ---- Guessed and Skip buttons (phone: full width, tall tap targets) ---- */
 #guessedBtn,
 #skipBtn {
-    width: 160px;
-    height: 130px;
-    padding: 1rem 0;
+    display: block;
+    width: 100%;
+    height: auto;
+    min-height: 5.5rem;
+    padding: 1.15rem 1.25rem;
     font-size: 1.3rem;
     font-weight: 600;
     font-family: 'Georgia', serif;
@@ -351,6 +416,7 @@ Game links are styled as buttons for better UX. */
     border-radius: 4px;
     cursor: pointer;
     transition: background 0.2s ease;
+    box-sizing: border-box;
 }
 
 /* Skip button - muted gray */
@@ -384,19 +450,19 @@ Game links are styled as buttons for better UX. */
     transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-
-
-/* ---- Timer (same width as buttons row) ---- */
+/* ---- Timer (same width as card) ---- */
 .guessing-timer {
-    width: 336px;               /* 160 + 16 + 160 */
-    font-size: 3.5rem;
+    width: min(var(--card-max-w), var(--card-vw));
+    font-size: clamp(2rem, 8vw, 3rem);
     font-weight: 700;
     color: #ffffff;
     background: rgba(255, 255, 255, 0.08);
     border-radius: 16px;
-    padding: 0.5rem 0;
-    margin: 0.5rem auto 1rem auto;
+    padding: 0.35rem 0;
+    margin: 0 auto;
     text-align: center;
+    box-sizing: border-box;
+    flex-shrink: 0;
 }
 
 /* ---- Guessing screen (non-explainer view) ---- */
@@ -407,28 +473,18 @@ Game links are styled as buttons for better UX. */
 }
 
 .guessing-timer-label {
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: #aaa;
     text-transform: uppercase;
     letter-spacing: 2px;
-    margin-bottom: 0.5rem;
-}
-
-.guessing-timer {
-    font-size: 3.5rem;
-    font-weight: 700;
-    color: #ffffff;
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 16px;
-    padding: 0.5rem 1rem;
-    margin: 0 auto 1rem auto;
-    min-width: 80px;
+    margin: 0;
+    flex-shrink: 0;
 }
 
 .guessing-explainer {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     color: #ccc;
-    margin-top: 1rem;
+    margin-top: 0;
 }
 
 #explainer-name {
@@ -437,10 +493,10 @@ Game links are styled as buttons for better UX. */
 }
 
 .guessing-cta {
-    font-size: 1.8rem;
+    font-size: clamp(1.25rem, 5vw, 1.6rem);
     font-weight: 700;
     color: #ffffff;
-    margin-top: 0.5rem;
+    margin-top: 0.25rem;
 }
 
 
@@ -473,6 +529,111 @@ Game links are styled as buttons for better UX. */
     cursor: pointer;
     background: white;
     color: #111;
+}
+
+/* ---- Leave game confirmation ---- */
+.exit-dialog {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+}
+
+.exit-dialog.is-open {
+    display: flex;
+}
+
+.exit-dialog-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    animation: exit-fade-in 0.28s ease forwards;
+}
+
+.exit-dialog-panel {
+    position: relative;
+    z-index: 1;
+    width: min(22rem, 100%);
+    background: #2a2a2a;
+    border-radius: 16px;
+    padding: 1.75rem 1.5rem;
+    text-align: center;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
+    animation: exit-panel-in 0.32s ease forwards;
+}
+
+.exit-dialog-message {
+    margin-bottom: 1.5rem;
+    font-size: 1.05rem;
+    line-height: 1.45;
+    color: #ddd;
+}
+
+.exit-dialog-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: stretch;
+}
+
+.exit-btn {
+    margin: 0;
+    padding: 0.75rem 1.25rem;
+    font-size: 1rem;
+    font-weight: 600;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    transition: filter 0.15s ease, transform 0.15s ease;
+}
+
+.exit-btn--leave {
+    background: #b8cfe0;
+    color: #1a2a35;
+    animation: exit-btn-nudge 0.55s ease 0.35s 1;
+}
+
+.exit-btn--leave:hover {
+    background: #a8c4d8;
+    filter: brightness(1.03);
+}
+
+.exit-btn--stay {
+    background: #6dbf59;
+    color: #0f1f0c;
+    animation: exit-btn-nudge 0.55s ease 0.5s 1;
+}
+
+.exit-btn--stay:hover {
+    background: #5fb04d;
+    filter: brightness(1.05);
+}
+
+@keyframes exit-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes exit-panel-in {
+    from {
+        opacity: 0;
+        transform: scale(0.94) translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+@keyframes exit-btn-nudge {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-3px); }
+    40% { transform: translateX(3px); }
+    60% { transform: translateX(-2px); }
+    80% { transform: translateX(2px); }
 }
 
 /* ---- There're no cards left message ---- */
@@ -532,31 +693,149 @@ Game links are styled as buttons for better UX. */
 }
 
 
-/* Mobile adaptation */
-@media (max-width: 768px) {
+/* Desktop: Skip / Guessed side by side */
+@media (min-width: 481px) {
+    .action-buttons {
+        flex-direction: row;
+        align-items: stretch;
+    }
+
+    #guessedBtn,
+    #skipBtn {
+        width: 160px;
+        height: 130px;
+        min-height: unset;
+        padding: 1rem 0;
+        font-size: 1.3rem;
+    }
+
+}
+
+@media (max-height: 700px) {
+    #screen-waiting h1 {
+        font-size: 1.5rem;
+        line-height: 1.25;
+    }
+    #players-list {
+        margin-top: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+    .waiting-cat {
+        max-width: 120px;
+        margin-top: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+    .startGame {
+        margin-top: 0.75rem;
+    }
+}
+
+/* Phone */
+@media (max-width: 480px) {
+    :root {
+        --page-pad: 1rem;
+        --plate-w: min(500px, calc(100vw - 2rem));
+        --plate-h: calc(100dvh - 2rem);
+        --card-max-w: 300px;
+        --card-vw: 88vw;
+    }
+
     body {
-    background-image: none; /* Remove heave space image for performance and clarity */
-    padding: 2rem;
+        padding: var(--page-pad);
     }
 
-    /* Glass plate becomes almost opaque, no blur */
-    .glass-plate {
-        background: rgba(18, 22, 38, 0.95);
-        backdrop-filter: none;
-        -webkit-backdrop-filter: none;
-        border-radius: 20px;
-        padding: 1.5rem;
-        max-width: 100%;
-        box-shadow: none;
-        border: none;
+    .main-card {
+        padding: 1.25rem 1rem;
+        overflow: hidden;
     }
 
-    /* Slightly smaller main title on mobile */
+    /* Large tap targets on phone */
+    .page-game .action-buttons {
+        flex-direction: column;
+        align-items: stretch;
+        width: min(var(--card-max-w), var(--card-vw));
+        margin-inline: auto;
+        gap: 0.75rem;
+    }
+
+    .page-game #guessedBtn,
+    .page-game #skipBtn {
+        width: 100%;
+        min-height: 6rem;
+        font-size: 1.4rem;
+        padding: 1.35rem 1rem;
+    }
+}
+
+/* Game page - lobby screens sit in upper area; active round stays centered */
+.page-game .main-card {
+    padding: 1rem 1.25rem;
+    justify-content: flex-start;
+}
+
+.page-game #screen-name,
+.page-game #screen-waiting,
+.page-game #screen-game {
+    padding-top: clamp(1.5rem, 10dvh, 3.5rem);
+}
+
+/* Round in progress: card or timer visible */
+.page-game #screen-game:has(.card-container[style*="flex"]),
+.page-game #screen-game:has(#guessing-timer[style*="block"]) {
+    justify-content: center;
+    padding-top: 0;
+}
+
+.page-game .action-buttons {
+    margin-top: 0;
+    flex-shrink: 0;
+}
+
+/* Hide empty button row before / between rounds */
+.page-game .action-buttons:has(#skipBtn[style*="none"]):has(#guessedBtn[style*="none"]) {
+    display: none;
+}
+
+@media (max-height: 700px) {
+    .page-game #screen-name,
+    .page-game #screen-waiting,
+    .page-game #screen-game:not(:has(.card-container[style*="flex"])):not(:has(#guessing-timer[style*="block"])) {
+        padding-top: 1rem;
+    }
+
+    .page-game .guessing-timer {
+        font-size: 2rem;
+    }
+
+    @media (max-width: 480px) {
+        :root {
+            --card-max-w: min(260px, 82vw);
+        }
+
+        .page-game #guessedBtn,
+        .page-game #skipBtn {
+            min-height: 5.25rem;
+            font-size: 1.25rem;
+        }
+    }
+
+    @media (min-width: 481px) {
+        :root {
+            --card-max-w: 280px;
+        }
+
+        #guessedBtn,
+        #skipBtn {
+            width: 140px;
+            height: 100px;
+        }
+    }
+}
+
+@media (max-width: 768px) {
     .main-title {
         font-size: 2.5rem;
     }
-
-    /* Smaller cat image to save vertical space */
     .cat-image {
         max-width: 140px;
     }

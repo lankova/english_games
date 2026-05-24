@@ -12,8 +12,8 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='global.css') }}">
 </head>
 
-<body>
-    <div class="main-card"> <!-- Light card with rounded corners — purely decorative -->
+<body class="page-game">
+    <div class="main-card"> <!-- Light card with rounded corners - purely decorative -->
         <!-- Screen 1: enter your name -->
         <div id="screen-name">
             <h1>Enter your name</h1>
@@ -84,6 +84,23 @@
                 <p>There are no cards left.<br>Do you want to play with the skipped cards?</p>
                 <button id="play-skipped-btn">Yes</button>
                 <button id="finish-game-btn">No, finish the game</button>
+            </div>
+
+            <div id="exit-dialog" class="exit-dialog" aria-hidden="true">
+                <div class="exit-dialog-backdrop" id="exit-dialog-backdrop"></div>
+                <div class="exit-dialog-panel" role="dialog" aria-labelledby="exit-dialog-message">
+                    <p id="exit-dialog-message" class="exit-dialog-message">
+                        Looks like you're leaving! Are you sure you want to exit this game session?
+                    </p>
+                    <div class="exit-dialog-buttons">
+                        <button type="button" id="exit-yes-btn" class="exit-btn exit-btn--leave">
+                            Yes, take me home!
+                        </button>
+                        <button type="button" id="exit-no-btn" class="exit-btn exit-btn--stay">
+                            No, let's keep playing!
+                        </button>
+                    </div>
+                </div>
             </div>
 
             <div id="main-cards-finished" class="main-cards-finished" style="display: none;">
@@ -160,10 +177,10 @@
             // Trying to join a room
             currentRoomCode = roomFromUrl;
             socket.emit('check_room', { room_code: roomFromUrl });
-            document.getElementById('screen-name').style.display = 'block';
+            document.getElementById('screen-name').style.display = 'flex';
         } else {
             // No room code - show name screen for creating a new room
-            document.getElementById('screen-name').style.display = 'block';
+            document.getElementById('screen-name').style.display = 'flex';
         }
 
         // ---------- Load cards from JSON ----------
@@ -279,7 +296,7 @@
             const newUrl = `${window.location.origin}/describe-and-guess/${currentRoomCode}`;
             window.history.pushState({}, '', newUrl);
 
-            document.getElementById('screen-waiting').style.display = 'block';
+            document.getElementById('screen-waiting').style.display = 'flex';
             document.getElementById('screen-name').style.display = 'none';
 
             // Show "Start Game" button only for the host
@@ -292,15 +309,15 @@
         socket.on('player_joined', (data) => {
             console.log('Players in room:', data.players);
             updatePlayersList(data.players);
-            if (!isHost && document.getElementById('screen-waiting').style.display !== 'block') {
+            if (!isHost && document.getElementById('screen-waiting').style.display !== 'flex') {
                 document.getElementById('screen-name').style.display = 'none';
-                document.getElementById('screen-waiting').style.display = 'block';
+                document.getElementById('screen-waiting').style.display = 'flex';
             }
         });
 
         socket.on('game_started', () => {
             document.getElementById('screen-waiting').style.display = 'none';
-            document.getElementById('screen-game').style.display = 'block';
+            document.getElementById('screen-game').style.display = 'flex';
             document.getElementById('becomeExplainerBtn').style.display = 'block';
             // Hide other elements initially
             document.querySelector('.card-container').style.display = 'none';
@@ -317,13 +334,13 @@
             document.getElementById('explainer-name').textContent = explainerName;
 
             // Hide "I'll explain" button and prompt for everyone
-            document.querySelector('.explainer-prompt').style.opacity = '0';
+            document.querySelector('.explainer-prompt').style.display = 'none';
             document.getElementById('becomeExplainerBtn').style.display = 'none';
             document.getElementById('becomeExplainerBtn').style.pointerEvents = 'none';
 
-            // CHECK LATE JOIN FIRST — before showing countdown
+            // CHECK LATE JOIN FIRST - before showing countdown
             if (data.late_join) {
-                // Late joiner — skip countdown, go straight to the round
+                // Late joiner - skip countdown, go straight to the round
                 // Late joiner is always a guesser for that round
                 document.getElementById('guessing-timer').style.display = 'block';
                 document.querySelector('.guessing-timer-label').style.display = 'block';
@@ -334,7 +351,7 @@
                 return;
             }
 
-            // Normal flow — show countdown
+            // Normal flow - show countdown
             document.getElementById('countdown').style.display = 'block';
             document.getElementById('countdown').textContent = '3';
 
@@ -348,14 +365,14 @@
                 document.getElementById('guessing-timer').style.display = 'block';
                 document.getElementById('guessing-timer').textContent = data.duration;
                 // Show card, buttons, timer
-                    document.querySelector('.card-container').style.display = 'block';
+                    document.querySelector('.card-container').style.display = 'flex';
                     document.getElementById('guessedBtn').style.display = 'inline-block';
                     document.getElementById('skipBtn').style.display = 'inline-block';
                     document.getElementById('message_non-explainers').style.display = 'none';
                     showCard(currentIndex);
                 });
             } else {
-                // Non-explainer — also see the countdown
+                // Non-explainer - also see the countdown
                 startCountdown(() => {
                     // Countdown finished, show waiting message
                     document.querySelector('.guessing-timer-label').style.display = 'block';
@@ -409,7 +426,7 @@
             document.getElementById('becomeExplainerBtn').style.display = 'none';
             document.querySelector('.explainer-prompt').style.display = 'none';
             document.getElementById('screen-waiting').style.display = 'none';
-            document.getElementById('screen-game').style.display = 'block';
+            document.getElementById('screen-game').style.display = 'flex';
 
             document.getElementById('round-result').style.display = 'block';
             // Show who scored and how much this round
@@ -475,8 +492,7 @@
             document.getElementById('back-to-main-btn').style.display = 'none';
 
             // Show explainer selection screen
-            document.querySelector('.explainer-prompt').style.display = '';
-            document.querySelector('.explainer-prompt').style.opacity = '1';
+            document.querySelector('.explainer-prompt').style.display = 'block';
             document.getElementById('becomeExplainerBtn').style.display = 'block';
             document.getElementById('becomeExplainerBtn').style.pointerEvents = 'auto';
 
@@ -525,7 +541,7 @@
                         host_token: hostToken
                     });
                     document.getElementById('screen-name').style.display = 'none';
-                    document.getElementById('screen-waiting').style.display = 'block';
+                    document.getElementById('screen-waiting').style.display = 'flex';
                 } else {
                     document.getElementById('screen-name').style.display = 'none';
                     document.getElementById('screen-error').style.display = 'block';
@@ -535,7 +551,7 @@
             // There's no room code in URl → create a new room
             socket.emit('create_room', { name: playerName });
             document.getElementById('screen-name').style.display = 'none';
-            document.getElementById('screen-waiting').style.display = 'block';
+            document.getElementById('screen-waiting').style.display = 'flex';
         }
         };
 
@@ -567,7 +583,24 @@
         };
 
         // Redirect user to the home page when they click the button
-        document.getElementById('goHomeBtn').onclick = () => {window.location.href = '/';};
+        document.getElementById('goHomeBtn').onclick = () => { window.location.href = '/'; };
+
+        const exitDialog = document.getElementById('exit-dialog');
+
+        function showExitDialog() {
+            exitDialog.classList.add('is-open');
+            exitDialog.setAttribute('aria-hidden', 'false');
+        }
+
+        function hideExitDialog() {
+            exitDialog.classList.remove('is-open');
+            exitDialog.setAttribute('aria-hidden', 'true');
+        }
+
+        document.getElementById('back-to-main-btn').onclick = showExitDialog;
+        document.getElementById('exit-yes-btn').onclick = () => { window.location.href = '/'; };
+        document.getElementById('exit-no-btn').onclick = hideExitDialog;
+        document.getElementById('exit-dialog-backdrop').onclick = hideExitDialog;
 
         // Become explainer button
         document.getElementById('becomeExplainerBtn').onclick = () => {
@@ -579,7 +612,7 @@
         };
 
         // If there are no cards left
-        // Yes button — shuffle skipped cards and continue
+        // Yes button - shuffle skipped cards and continue
         document.getElementById('play-skipped-btn').onclick = () => {
             document.getElementById('skipped-cards-dialog').style.display = 'none';
             cards = shuffleArray([...skippedCards]);
@@ -590,7 +623,7 @@
         };
 
 
-        // No — finish the game
+        // No - finish the game
         document.getElementById('finish-game-btn').onclick = () => {
             document.getElementById('skipped-cards-dialog').style.display = 'none';
             endRound();
