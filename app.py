@@ -202,40 +202,49 @@ def handle_become_explainer(data):
 def start_round_timer(room_code):
     if room_code not in rooms:
         return
-    duration = rooms[room_code]['duration']
-    rooms[room_code]['round_start_time'] = time.time()
+    room = rooms[room_code]
+
+    old = room.get('timer_thread')
+    if old and old.is_alive():
+        room['round_active'] = False
+        time.sleep(0.2)
+
+    room['round_active'] = True
+    room['timer_paused'] = False
 
     def timer_task():
-        time_left = duration
-        while time_left >= 0 and rooms[room_code]['round_active']:
+        while room.get('round_active') and room_code in rooms:
+            time_left = room.get('timer_time_left', room['duration'])
             socketio.emit('timer_update', {'time_left': time_left}, to=room_code)
+            if time_left <= 0:
+                break
             time.sleep(1)
-            time_left -= 1
-        if rooms[room_code]['round_active']:
-            # Save last_round before resetting
-            rooms[room_code]['last_round'] = {
-                'player': rooms[room_code]['explainer'],  # explainer who got 0 points
-                'score': 0
-            }
+            if not room.get('round_active'):
+                return
+            room['timer_time_left'] = time_left - 1
 
-            rooms[room_code]['round_active'] = False
-            rooms[room_code]['explainer'] = None
-            socketio.emit('round_timeout', to=room_code)
+        if room_code not in rooms:
+            return
+        if not room.get('round_active'):
+            return
 
-            # Send scoreboard with last_round
-            scoreboard = [{'name': name, 'display': str(total)} for name, total in rooms[room_code]['players'].items()]
-            socketio.emit('scoreboard_update', {
-                'scoreboard': scoreboard,
-                'last_round': rooms[room_code]['last_round']
-            }, to=room_code)
+        room['last_round'] = {
+            'player': room['explainer'],
+            'score': 0
+        }
+        room['round_active'] = False
+        room['explainer'] = None
+        socketio.emit('round_timeout', to=room_code)
 
-    old = rooms[room_code].get('timer_thread')
-    if old and old.is_alive():
-        rooms[room_code]['round_active'] = False
+        scoreboard = [{'name': name, 'display': str(total)} for name, total in room['players'].items()]
+        socketio.emit('scoreboard_update', {
+            'scoreboard': scoreboard,
+            'last_round': room['last_round']
+        }, to=room_code)
 
     thread = threading.Thread(target=timer_task)
-    thread.daemon = True # Thread will stop automatically when the main program ends
-    rooms[room_code]['timer_thread'] = thread
+    thread.daemon = True
+    room['timer_thread'] = thread
     thread.start()
 
 @socketio.on('start_timer')
@@ -246,10 +255,41 @@ def handle_start_timer(data):
     room_data = rooms[room_code]
     room_data.pop('last_round', None)
     if not room_data['round_active'] and room_data['explainer'] is not None:
-        room_data['round_active'] = True
-        # Send initial timer value immediately so non-explainers see it
-        emit('timer_update', {'time_left': room_data['duration']}, to=room_code)
+        room_data['timer_time_left'] = room_data['duration']
+        room_data['timer_paused'] = False
+        emit('timer_update', {'time_left': room_data['timer_time_left']}, to=room_code)
         start_round_timer(room_code)
+
+
+@socketio.on('pause_timer')
+def handle_pause_timer(data):
+    room_code = data.get('room_code')
+    if room_code not in rooms:
+        return
+    room = rooms[room_code]
+    time_left = data.get('time_left')
+    if time_left is not None:
+        try:
+            room['timer_time_left'] = int(time_left)
+        except (TypeError, ValueError):
+            pass
+    room['timer_paused'] = True
+    room['round_active'] = False
+
+
+@socketio.on('resume_timer')
+def handle_resume_timer(data):
+    room_code = data.get('room_code')
+    if room_code not in rooms:
+        return
+    room = rooms[room_code]
+    if room.get('explainer') is None:
+        return
+    if room.get('timer_time_left', 0) <= 0:
+        return
+    room['timer_paused'] = False
+    emit('timer_update', {'time_left': room['timer_time_left']}, to=room_code)
+    start_round_timer(room_code)
 
 
 @socketio.on('score_update')

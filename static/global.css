@@ -21,6 +21,8 @@ html, body {
     --plate-w: min(500px, calc(100vw - 4rem));
     --plate-h: calc(100dvh - 4rem);
     --page-pad: 2rem;
+    --cat-hero-size: 270px;
+    --cat-waiting-size: 200px;
 }
 
 /* Main page settings */
@@ -124,12 +126,9 @@ Game links are styled as buttons for better UX. */
 #startGame:hover,
 #becomeExplainerBtn:hover,
 #new-game-btn:hover,
-#next-round-btn:hover {
-    background: rgb(191, 230, 207);
-}
-
+#next-round-btn:hover,
 #back-to-main-btn:hover {
-    background: rgb(220, 220, 220);
+    background: rgb(191, 230, 207);
 }
 
 /* Small descriptive text under each game title (e.g., "A word-guessing adventure") */
@@ -147,13 +146,14 @@ Game links are styled as buttons for better UX. */
     margin-top: auto;
     }
 
-/* Cat image */
+/* Cat images — fixed size (index, rules); do not shrink with plate width */
 .cat-image {
-    width: 100%;
-    max-width: 270px;
+    display: block;
+    width: var(--cat-hero-size);
+    max-width: none;
     height: auto;
     margin-bottom: 0.5rem;
-    border-radius: 16px; /* Soft rounded corners */
+    border-radius: 16px;
 }
 
 /* Contact me */
@@ -225,9 +225,11 @@ Game links are styled as buttons for better UX. */
     color: #ddd;
 }
 
+/* Waiting room cat — same idea: fixed width when image is added */
 .waiting-cat {
-    max-width: 200px;
-    width: 100%;
+    display: block;
+    width: var(--cat-waiting-size);
+    max-width: none;
     height: auto;
     margin-top: 1rem;
     border-radius: 16px;
@@ -297,7 +299,6 @@ Game links are styled as buttons for better UX. */
 .waiting-cat {
     margin-top: 1rem;
     margin-bottom: 1rem;
-    max-width: min(200px, 55vw);
 }
 
 /* ---- Start Game button - only the host can see it ---- */
@@ -319,7 +320,7 @@ Game links are styled as buttons for better UX. */
     gap: 0.5rem;
 }
 
-/* ---- Who will explain the words? ---- */
+/* ---- Who'll help us guess words? ---- */
 .explainer-prompt {
     font-size: 1rem;
     color: #ddd;
@@ -503,7 +504,7 @@ Game links are styled as buttons for better UX. */
 .skipped-cards-dialog {
     display: none;
     position: fixed;
-    top: 50%;
+    top: 45%;
     left: 50%;
     transform: translate(-50%, -50%);
     background: #2a2a2a;
@@ -512,23 +513,57 @@ Game links are styled as buttons for better UX. */
     text-align: center;
     z-index: 20;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    margin-top: -3rem;
 }
 
-.skipped-cards-dialog p {
+.skipped-cards-message {
     margin-bottom: 1.5rem;
     font-size: 1.1rem;
+    line-height: 1.45;
     color: #ddd;
 }
 
-.skipped-cards-dialog button {
-    margin: 0 0.5rem;
-    padding: 0.5rem 1.5rem;
+.skipped-cards-dialog-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    align-items: stretch;
+}
+
+.skipped-btn {
+    margin: 0;
+    padding: 0.75rem 1.25rem;
     font-size: 1rem;
+    font-weight: 600;
     border-radius: 10px;
     border: none;
     cursor: pointer;
-    background: white;
-    color: #111;
+    transition: filter 0.15s ease, background 0.15s ease;
+}
+
+.skipped-btn--yes {
+    background: #b7c9a8;
+    color: #1a2a14;
+}
+
+.skipped-btn--yes:hover {
+    background: #9ab88a;
+}
+
+.skipped-btn--no {
+    background: #d8d8d8;
+    color: #2a2a2a;
+}
+
+.skipped-btn--no:hover {
+    background: #c5c5c5;
+}
+
+.skipped-cards-time-left {
+    margin-top: 0.75rem;
+    font-size: 1rem;
+    font-weight: 600;
+    color: #f4a261;
 }
 
 /* ---- Leave game confirmation ---- */
@@ -581,35 +616,40 @@ Game links are styled as buttons for better UX. */
 
 .exit-btn {
     margin: 0;
-    padding: 0.75rem 1.25rem;
+    padding: 0.85rem 1.5rem;
     font-size: 1rem;
     font-weight: 600;
-    border-radius: 10px;
+    border-radius: 12px;
     border: none;
     cursor: pointer;
-    transition: filter 0.15s ease, transform 0.15s ease;
+    transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    font-family: 'Georgia', serif;
 }
 
+/* Yes, take me home! */
 .exit-btn--leave {
-    background: #b8cfe0;
-    color: #1a2a35;
-    animation: exit-btn-nudge 0.55s ease 0.35s 1;
+    background: #e0dcd5;
+    color: #2a2a2a;
+    border: 2px solid #8b8b8b;
 }
 
 .exit-btn--leave:hover {
-    background: #a8c4d8;
-    filter: brightness(1.03);
+    background: #d2cec7;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
+/* No, let's keep playing! */
 .exit-btn--stay {
-    background: #6dbf59;
-    color: #0f1f0c;
-    animation: exit-btn-nudge 0.55s ease 0.5s 1;
+    background: #b7c9a8;
+    color: #1a2a14;
+    border: 2px solid #6b8a5e;
 }
 
 .exit-btn--stay:hover {
-    background: #5fb04d;
-    filter: brightness(1.05);
+    background: #9ab88a;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 @keyframes exit-fade-in {
@@ -639,14 +679,16 @@ Game links are styled as buttons for better UX. */
 /* ---- There're no cards left message ---- */
 .main-cards-finished {
     display: none;
-    margin-top: 2rem;
+    margin-top: 1.5rem;
     text-align: center;
 }
 
 .main-cards-finished p {
-    font-size: 1.2rem;
-    color: #ddd;
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #f4a261;
     margin-bottom: 1.5rem;
+    letter-spacing: 0.5px;
 }
 
 #results-table {
@@ -721,7 +763,6 @@ Game links are styled as buttons for better UX. */
         margin-bottom: 0.75rem;
     }
     .waiting-cat {
-        max-width: 120px;
         margin-top: 0.5rem;
         margin-bottom: 0.5rem;
     }
@@ -835,8 +876,5 @@ Game links are styled as buttons for better UX. */
 @media (max-width: 768px) {
     .main-title {
         font-size: 2.5rem;
-    }
-    .cat-image {
-        max-width: 140px;
     }
 }

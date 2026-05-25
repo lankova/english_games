@@ -47,10 +47,10 @@
         <div id="screen-game" style="display: none;">
 
             <!-- Explainer prompt -->
-            <p class="explainer-prompt">Who will explain the words?</p>
+            <p class="explainer-prompt">Who'll help us guess words?</p>
 
             <!-- Button to become the explainer (shown to all players when game starts) -->
-            <button id="becomeExplainerBtn">I'll explain</button>
+            <button id="becomeExplainerBtn">Let me try!</button>
 
             <!-- Countdown before round starts -->
             <div id="countdown" style="display: none;">3</div>
@@ -81,30 +81,36 @@
             </div>
 
             <div id="skipped-cards-dialog" class="skipped-cards-dialog" style="display: none;">
-                <p>There are no cards left.<br>Do you want to play with the skipped cards?</p>
-                <button id="play-skipped-btn">Yes</button>
-                <button id="finish-game-btn">No, finish the game</button>
+                <p class="skipped-cards-message">
+                    All cards are done — nice work!<br>
+                    Do you want to play with the skipped cards?
+                </p>
+                <p id="skipped-cards-time-left" class="skipped-cards-time-left"></p>
+                <div class="skipped-cards-dialog-buttons">
+                    <button type="button" id="play-skipped-btn" class="skipped-btn skipped-btn--yes">Yes, let's go!</button>
+                    <button type="button" id="finish-game-btn" class="skipped-btn skipped-btn--no">No, finish the game.</button>
+                </div>
             </div>
 
             <div id="exit-dialog" class="exit-dialog" aria-hidden="true">
                 <div class="exit-dialog-backdrop" id="exit-dialog-backdrop"></div>
                 <div class="exit-dialog-panel" role="dialog" aria-labelledby="exit-dialog-message">
                     <p id="exit-dialog-message" class="exit-dialog-message">
-                        Looks like you're leaving! Are you sure you want to exit this game session?
+                        Looks like you're leaving! Are you sure you want to exit this game?
                     </p>
                     <div class="exit-dialog-buttons">
-                        <button type="button" id="exit-yes-btn" class="exit-btn exit-btn--leave">
-                            Yes, take me home!
-                        </button>
                         <button type="button" id="exit-no-btn" class="exit-btn exit-btn--stay">
                             No, let's keep playing!
+                        </button>
+                        <button type="button" id="exit-yes-btn" class="exit-btn exit-btn--leave">
+                            Yes, take me home!
                         </button>
                     </div>
                 </div>
             </div>
 
             <div id="main-cards-finished" class="main-cards-finished" style="display: none;">
-                <p>There are no cards left.</p>
+                <p>Great job! We've played all the cards!</p>
             </div>
 
 
@@ -234,9 +240,10 @@
             } else {
                 // No more cards
                 if (skippedCards.length === 0) {
-                    allCardsDone = true;  // all cards are done
+                    allCardsDone = true;
 
                     document.getElementById('cardWord').style.display = 'none';
+                    document.querySelector('.card-container').style.display = 'none';
                     document.getElementById('main-cards-finished').style.display = 'block';
                     document.getElementById('next-round-btn').style.display = 'none';
                     document.getElementById('new-game-btn').style.display = 'block';
@@ -244,9 +251,21 @@
 
                     endRound();
                 } else {
-                    // Ask if they want to replay skipped cards
-                    document.getElementById('skipped-cards-dialog').style.display = 'block';
+                    openSkippedCardsDialog();
                 }
+            }
+        }
+
+        function openSkippedCardsDialog() {
+            const timeLeft = document.getElementById('guessing-timer').textContent.trim();
+            document.getElementById('skipped-cards-time-left').textContent =
+                `You have ${timeLeft} seconds left.`;
+            document.getElementById('skipped-cards-dialog').style.display = 'block';
+            if (currentRoomCode) {
+                socket.emit('pause_timer', {
+                    room_code: currentRoomCode,
+                    time_left: parseInt(timeLeft, 10)
+                });
             }
         }
 
@@ -388,6 +407,11 @@
 
         socket.on('timer_update', (data) => {
             document.getElementById('guessing-timer').textContent = data.time_left;
+            const skippedDialog = document.getElementById('skipped-cards-dialog');
+            if (skippedDialog.style.display === 'block') {
+                document.getElementById('skipped-cards-time-left').textContent =
+                    `You have ${data.time_left} seconds left.`;
+            }
         });
 
         socket.on('round_timeout', () => {
@@ -429,6 +453,11 @@
             document.getElementById('screen-game').style.display = 'flex';
 
             document.getElementById('round-result').style.display = 'block';
+
+            if (allCardsDone) {
+                document.getElementById('main-cards-finished').style.display = 'block';
+            }
+
             // Show who scored and how much this round
             if (data.last_round) {
                 document.getElementById('result-message').textContent =
@@ -479,6 +508,7 @@
             // Reset for a new round
             document.getElementById('guessing-timer').style.display = 'none';
             document.querySelector('.guessing-timer-label').style.display = 'none';
+            document.getElementById('main-cards-finished').style.display = 'none';
             allCardsDone = false;
             document.getElementById('explainer-name').textContent = 'The explainer';
             score = 0;
@@ -598,6 +628,31 @@
         }
 
         document.getElementById('back-to-main-btn').onclick = showExitDialog;
+        document.getElementById('new-game-btn').onclick = () => {
+            allCardsDone = false;
+            currentIndex = 0;
+            score = 0;
+            skippedCards = [];
+            document.getElementById('main-cards-finished').style.display = 'none';
+            document.getElementById('round-result').style.display = 'none';
+            document.getElementById('score-table').style.display = 'none';
+            document.getElementById('new-game-btn').style.display = 'none';
+            document.getElementById('back-to-main-btn').style.display = 'none';
+            document.getElementById('next-round-btn').style.display = 'none';
+
+            fetch('/static/game_1_describe_and_guess/data/words.json')
+                .then(response => response.json())
+                .then(data => {
+                    cards = shuffleArray(data);
+                    document.querySelector('.explainer-prompt').style.display = 'block';
+                    document.querySelector('.explainer-prompt').style.opacity = '1';
+                    document.getElementById('becomeExplainerBtn').style.display = 'block';
+                    document.getElementById('becomeExplainerBtn').style.pointerEvents = 'auto';
+                    document.querySelector('.card-container').style.display = 'none';
+                    showCard(0);
+                });
+        };
+
         document.getElementById('exit-yes-btn').onclick = () => { window.location.href = '/'; };
         document.getElementById('exit-no-btn').onclick = hideExitDialog;
         document.getElementById('exit-dialog-backdrop').onclick = hideExitDialog;
@@ -619,6 +674,9 @@
             skippedCards = [];
             currentIndex = 0;
             allCardsDone = false;
+            if (currentRoomCode) {
+                socket.emit('resume_timer', { room_code: currentRoomCode });
+            }
             showCard(0);
         };
 
