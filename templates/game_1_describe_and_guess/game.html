@@ -41,7 +41,7 @@
             </div>
 
         <!-- Picture of a waiting cat - adds a friendly touch -->
-            <img class="waiting-cat" src="{{ url_for('static', filename='game_1_describe_and_guess/images/WaitingCat.jpg') }}" alt="Waiting cat">
+            <img class="waiting-cat" src="{{ url_for('static', filename='common/images/orange_cat_waiting.png') }}" alt="Waiting cat">
         </div>
 
 
@@ -52,7 +52,7 @@
             <p class="explainer-prompt">Who'll help us guess words?</p>
 
             <!-- Button to become the explainer (shown to all players when game starts) -->
-            <button id="becomeExplainerBtn">Let me try!</button>
+            <button id="becomeExplainerBtn">I accept the challenge!</button>
 
             <!-- Countdown before round starts -->
             <div id="countdown" style="display: none;">3</div>
@@ -90,7 +90,7 @@
                 <p id="skipped-cards-time-left" class="skipped-cards-time-left"></p>
                 <div class="skipped-cards-dialog-buttons">
                     <button type="button" id="play-skipped-btn" class="skipped-btn skipped-btn--yes">Yes, let's go!</button>
-                    <button type="button" id="finish-game-btn" class="skipped-btn skipped-btn--no">No, finish the game.</button>
+                    <button type="button" id="finish-round-btn" class="skipped-btn skipped-btn--no">No, finish the round.</button>
                 </div>
             </div>
 
@@ -717,7 +717,7 @@
 
 
         // No - finish the game
-        document.getElementById('finish-game-btn').onclick = () => {
+        document.getElementById('finish-round-btn').onclick = () => {
             document.getElementById('skipped-cards-dialog').style.display = 'none';
             endRound();
         };
@@ -734,6 +734,20 @@
             document.body.classList.toggle('light-theme');
             const isLight = document.body.classList.contains('light-theme');
             localStorage.setItem('theme', isLight ? 'light' : 'dark');
+            updateCatImage(isLight);
+        });
+
+        function updateCatImage(isLight) {
+            // For other index.html and rules.html
+            const catImage = document.querySelector('.cat-image');
+            if (catImage) {
+                catImage.src = isLight ? '/static/common/images/orange_cat_light.png' : '/static/common/images/orange_cat.png';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const isLight = document.body.classList.contains('light-theme');
+            updateCatImage(isLight);
         });
 
 

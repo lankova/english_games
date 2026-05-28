@@ -196,7 +196,6 @@ Game links are styled as buttons for better UX. */
 /* Hover state - soft mint green feedback */
 #submit_name_btn:hover,
 #startGame:hover,
-#becomeExplainerBtn:hover,
 #new-game-btn:hover,
 #next-round-btn:hover,
 #back-to-main-btn:hover {
@@ -295,6 +294,47 @@ Game links are styled as buttons for better UX. */
     transform: translateY(0);
 }
 
+#becomeExplainerBtn {
+    background: linear-gradient(135deg, #d4c5a0, #c4b080);
+    border: 2px solid #8b7b5a;
+    color: #3a2a10;
+    font-family: 'Georgia', serif;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.3);
+    padding: 0.75rem 1.5rem;
+    font-size: 1.1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+#becomeExplainerBtn:hover {
+    background: linear-gradient(135deg, #e0d4a8, #d0c090);
+    border-color: #6b5b3a;
+    color: #2a1a05;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+    transform: translateY(-1px);
+}
+
+#becomeExplainerBtn:active {
+    transform: scale(0.97);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* "Who'll help us guess words?" — античный стиль */
+.explainer-prompt {
+    font-family: 'Georgia', serif;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: 1px;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    margin: 0 auto 0.75rem;
+}
+
+
 /* ----------- Game 1 - Describe & Guess ---------*/
 /* ------------ The rules (rules.html) ----------*/
 .rules-card {
@@ -357,7 +397,6 @@ Game links are styled as buttons for better UX. */
 /* ---- submit_name_btn - submit player name to join the game ---- */
 #submit_name_btn,
 #startGame,
-#becomeExplainerBtn,
 #next-round-btn {
     margin: 0.5rem auto 0;
     padding: 0.6rem 1.25rem;
@@ -414,13 +453,6 @@ Game links are styled as buttons for better UX. */
     align-items: center;
     justify-content: flex-start;
     gap: 0.5rem;
-}
-
-/* ---- Who'll help us guess words? ---- */
-.explainer-prompt {
-    font-size: 1rem;
-    color: var(--text-secondary);
-    margin: 0 auto 0.75rem;
 }
 
 #countdown {
@@ -616,7 +648,7 @@ Game links are styled as buttons for better UX. */
     margin-bottom: 1.5rem;
     font-size: 1.1rem;
     line-height: 1.45;
-    color: 1a1a1a;
+    color: var(--text);
 }
 
 .skipped-cards-dialog-buttons {
@@ -648,7 +680,7 @@ Game links are styled as buttons for better UX. */
 
 .skipped-btn--no {
     background: #d8d8d8;
-    color: 1a1a1a;
+    color: #1a1a1a;
 }
 
 .skipped-btn--no:hover {
@@ -700,7 +732,7 @@ Game links are styled as buttons for better UX. */
     margin-bottom: 1.5rem;
     font-size: 1.05rem;
     line-height: 1.45;
-    color: 1a1a1a;
+    color: var(--text);
 }
 
 .exit-dialog-buttons {
@@ -725,7 +757,7 @@ Game links are styled as buttons for better UX. */
 /* Yes, take me home! */
 .exit-btn--leave {
     background: var(--skip-bg);
-    color: 1a1a1a;
+    color: #1a1a1a;
     border: 2px solid #8b8b8b;
 }
 
@@ -787,29 +819,106 @@ Game links are styled as buttons for better UX. */
     letter-spacing: 0.5px;
 }
 
+/* --- Scroll / Papyrus background for score table --- */
+#score-table {
+    position: relative;
+    background: linear-gradient(180deg, #e8dcc8 0%, #dfceaa 30%, #d4c098 50%, #dfceaa 70%, #e8dcc8 100%);
+    border: 3px solid #8b7b5a;
+    border-radius: 4px;
+    border-left: 4px solid #8b7b5a;
+    border-right: 4px solid #8b7b5a;
+    box-shadow:
+        inset 0 0 30px rgba(139, 123, 90, 0.2),
+        0 4px 20px rgba(0, 0, 0, 0.3);
+    padding: 1.5rem 1.5rem 1rem;
+    margin: 0.5rem auto;
+    max-width: 90%;
+    width: auto;
+}
+
+/* Scroll edges — darker, uneven look */
+#score-table::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 12px;
+    background: linear-gradient(180deg, rgba(139, 123, 90, 0.4), transparent);
+    border-radius: 2px 2px 0 0;
+}
+
+#score-table::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 12px;
+    background: linear-gradient(0deg, rgba(139, 123, 90, 0.4), transparent);
+    border-radius: 0 0 2px 2px;
+}
+
+/* Table inside scroll */
 #results-table {
     width: 100%;
     border-collapse: collapse;
-    margin: 1rem 0;
+    margin: 0.5rem 0;
 }
 
 #results-table th {
     text-align: center;
     padding: 0.5rem 1rem;
-    border-bottom: var(--table-border);
-    color: var(--text-secondary);
-    font-weight: 600;
+    border-bottom: 2px solid #8b7b5a;
+    color: #3a2a10;
+    font-family: 'Georgia', serif;
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 0.5px;
 }
 
 #results-table td {
     text-align: center;
     padding: 0.5rem 1rem;
-    border-bottom: var(--table-border-light);
-    color: var(--text-secondary);
+    border-bottom: 1px solid rgba(139, 123, 90, 0.4);
+    color: #3a2a10;
+    font-family: 'Georgia', serif;
+    font-size: 0.95rem;
 }
 
 #results-table tbody tr:last-child td {
     border-bottom: none;
+}
+
+/* Hover effect on rows */
+#results-table tbody tr:hover {
+    background: rgba(139, 123, 90, 0.15);
+}
+
+/* Round result message - "Lida got 5 points this round!" */
+#result-message {
+    font-family: 'Georgia', serif;
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #3a2a10;
+    text-align: center;
+    letter-spacing: 0.5px;
+    background: linear-gradient(135deg, rgba(232, 220, 200, 0.7), rgba(212, 192, 152, 0.5));
+    border-left: 3px solid #8b7b5a;
+    border-right: 3px solid #8b7b5a;
+    border-radius: 4px;
+    padding: 0.6rem 1.5rem;
+    margin: 0.5rem auto 1rem;
+    display: inline-block;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+#result-message::before {
+    content: '✨ ';
+}
+
+#result-message::after {
+    content: ' ✨';
 }
 
 
