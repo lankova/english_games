@@ -20,11 +20,9 @@
             <h1>Enter your name</h1>
             <input type="text" id="playerName" minlength="1" maxlength="20">
             <p id="name-error" class="name-error"></p>
-
-            <div class="OK">
-                 <button id="submit_name_btn">OK</button>
-            </div>
+            <button id="submit_name_btn" class="ok-button">OK</button>
         </div>
+
 
         <!-- Screen 2: waiting -->
         <div id="screen-waiting" style="display: none;">
@@ -111,17 +109,18 @@
                 </div>
             </div>
 
-            <div id="main-cards-finished" class="main-cards-finished" style="display: none;">
+            <!-- 1. Great job! We've played all the cards (hidden by default) -->
+            <div id="all-cards-done" class="all-cards-done" style="display: none;">
                 <p>Great job! We've played all the cards!</p>
             </div>
 
-
+            <!-- 2. Ann got 4 points this round! -->
             <!-- Round result message (hidden by default) -->
             <div id="round-result" style="display: none;">
                 <h2 id="result-message"></h2>
             </div>
 
-            <!-- Score table (hidden by default) -->
+            <!-- 3. Score table (hidden by default) -->
             <div id="score-table" style="display: none;">
                 <table id="results-table">
                        <thead>
@@ -130,6 +129,10 @@
                         <tbody></tbody>
                 </table>
             </div>
+
+            <!-- 4. Waiting... -->
+            <p id="waiting-host-message" style="display: none; font-size: 1rem; color: var(--accent); text-align: center; margin-top: 1rem;"></p>
+
 
             <button id="next-round-btn" style="display: none;">Next round</button>
 
@@ -239,14 +242,16 @@
             if (index < cards.length) {
                 document.getElementById('cardWord').textContent = cards[index];
                 document.getElementById('cardWord').style.display = 'block';
+                document.querySelector('.card-container').style.display = 'flex';
             } else {
                 // No more cards
                 if (skippedCards.length === 0) {
                     allCardsDone = true;
+                    socket.emit('all_cards_done', { room_code: currentRoomCode });
 
                     document.getElementById('cardWord').style.display = 'none';
                     document.querySelector('.card-container').style.display = 'none';
-                    document.getElementById('main-cards-finished').style.display = 'block';
+                    document.getElementById('all-cards-done').style.display = 'block';
                     document.getElementById('next-round-btn').style.display = 'none';
                     document.getElementById('new-game-btn').style.display = 'block';
                     document.getElementById('back-to-main-btn').style.display = 'block';
@@ -272,18 +277,18 @@
         }
 
         function endRound() {
+            console.log('endRound called. allCardsDone:', allCardsDone, 'explainerName:', explainerName, 'playerName:', playerName);
             // Hide UI elements
             document.getElementById('guessedBtn').style.display = 'none';
             document.getElementById('skipBtn').style.display = 'none';
             document.getElementById('cardWord').style.display = 'none';
-            document.getElementById('main-cards-finished').style.display = 'none';
+            document.getElementById('all-cards-done').style.display = 'none';
             document.getElementById('skipped-cards-dialog').style.display = 'none';
-
 
             // Send round data to server
             socket.emit('round_end', {
                 room_code: currentRoomCode,
-                player: playerName,
+                player: explainerName || playerName,  // fallback на playerName
                 round_score: Number(score)
                 });
                 score = 0;
@@ -337,6 +342,7 @@
         });
 
         socket.on('game_started', () => {
+            console.log('game_started event received!');
             document.getElementById('screen-waiting').style.display = 'none';
             document.getElementById('screen-game').style.display = 'flex';
             document.getElementById('becomeExplainerBtn').style.display = 'block';
@@ -417,6 +423,8 @@
         });
 
         socket.on('round_timeout', () => {
+            console.log('round_timeout received. allCardsDone:', allCardsDone, 'explainerName:', explainerName);
+            if (allCardsDone) return
             endRound();
         });
 
@@ -463,7 +471,7 @@
             document.getElementById('round-result').style.display = 'block';
 
             if (allCardsDone) {
-                document.getElementById('main-cards-finished').style.display = 'block';
+                document.getElementById('all-cards-done').style.display = 'block';
             }
 
             // Show who scored and how much this round
@@ -477,13 +485,23 @@
             // Show/hide buttons based on the role
             if (!isHost) {
                 document.getElementById('next-round-btn').style.display = 'none';
-            } else if (allCardsDone) {
-                // All cards done - show final buttons, not Next round
+                document.getElementById('new-game-btn').style.display = 'none';
+                document.getElementById('back-to-main-btn').style.display = 'none';
+
+                if (data.all_cards_done) {
+                    document.getElementById('all-cards-done').style.display = 'block';
+                    document.getElementById('waiting-host-message').textContent = 'Waiting for the host to start a new game...';
+                } else {
+                    document.getElementById('waiting-host-message').textContent = 'Waiting for the host to start a new round...';
+                }
+                document.getElementById('waiting-host-message').style.display = 'block';
+            //* For the host *//
+            } else if (data.all_cards_done) {
+                document.getElementById('all-cards-done').style.display = 'block';
                 document.getElementById('next-round-btn').style.display = 'none';
                 document.getElementById('new-game-btn').style.display = 'block';
                 document.getElementById('back-to-main-btn').style.display = 'block';
             } else {
-                // Host sees Next round button
                 document.getElementById('next-round-btn').style.display = 'block';
                 document.getElementById('new-game-btn').style.display = 'none';
                 document.getElementById('back-to-main-btn').style.display = 'block';
@@ -516,7 +534,8 @@
             // Reset for a new round
             document.getElementById('guessing-timer').style.display = 'none';
             document.querySelector('.guessing-timer-label').style.display = 'none';
-            document.getElementById('main-cards-finished').style.display = 'none';
+            document.getElementById('all-cards-done').style.display = 'none';
+            document.getElementById('waiting-host-message').style.display = 'none';
             allCardsDone = false;
             document.getElementById('explainer-name').textContent = 'The explainer';
             score = 0;
@@ -527,7 +546,6 @@
                 .then(data => {
                     cards = shuffleArray(data);
                     skippedCards = [];
-                    showCard(0);
                 })
                 .catch(error => console.error('Upload error:', error));
 
@@ -548,6 +566,34 @@
             // Card stays hidden until explainer is chosen and countdown finishes
             document.querySelector('.card-container').style.display = 'none';
         });
+
+        socket.on('new_game_ready', () => {
+            allCardsDone = false;
+            currentIndex = 0;
+            score = 0;
+            skippedCards = [];
+            document.getElementById('all-cards-done').style.display = 'none';
+            document.getElementById('round-result').style.display = 'none';
+            document.getElementById('score-table').style.display = 'none';
+            document.getElementById('waiting-host-message').style.display = 'none';
+            document.getElementById('new-game-btn').style.display = 'none';
+            document.getElementById('back-to-main-btn').style.display = 'none';
+            document.getElementById('next-round-btn').style.display = 'none';
+
+            document.querySelector('.card-container').style.display = 'none';
+            document.getElementById('cardWord').style.display = 'none';
+
+            fetch('/static/game_1_describe_and_guess/data/words.json')
+                .then(response => response.json())
+                .then(data => {
+                    cards = shuffleArray(data);
+                    document.querySelector('.explainer-prompt').style.display = 'block';
+                    document.getElementById('becomeExplainerBtn').style.display = 'block';
+                    document.getElementById('becomeExplainerBtn').style.pointerEvents = 'auto';
+                    document.querySelector('.card-container').style.display = 'none';
+                });
+        });
+
 
         socket.on('player_kicked', (data) => {
             const playerElement = document.querySelector(`[data-player="${data.player}"]`);
@@ -664,28 +710,7 @@
 
         document.getElementById('back-to-main-btn').onclick = showExitDialog;
         document.getElementById('new-game-btn').onclick = () => {
-            allCardsDone = false;
-            currentIndex = 0;
-            score = 0;
-            skippedCards = [];
-            document.getElementById('main-cards-finished').style.display = 'none';
-            document.getElementById('round-result').style.display = 'none';
-            document.getElementById('score-table').style.display = 'none';
-            document.getElementById('new-game-btn').style.display = 'none';
-            document.getElementById('back-to-main-btn').style.display = 'none';
-            document.getElementById('next-round-btn').style.display = 'none';
-
-            fetch('/static/game_1_describe_and_guess/data/words.json')
-                .then(response => response.json())
-                .then(data => {
-                    cards = shuffleArray(data);
-                    document.querySelector('.explainer-prompt').style.display = 'block';
-                    document.querySelector('.explainer-prompt').style.opacity = '1';
-                    document.getElementById('becomeExplainerBtn').style.display = 'block';
-                    document.getElementById('becomeExplainerBtn').style.pointerEvents = 'auto';
-                    document.querySelector('.card-container').style.display = 'none';
-                    showCard(0);
-                });
+            socket.emit('new_game', { room_code: currentRoomCode });
         };
 
         document.getElementById('exit-yes-btn').onclick = () => { window.location.href = '/'; };
@@ -712,6 +737,9 @@
             if (currentRoomCode) {
                 socket.emit('resume_timer', { room_code: currentRoomCode });
             }
+
+            document.querySelector('.card-container').style.display = 'flex';
+            document.getElementById('cardWord').style.display = 'block';
             showCard(0);
         };
 

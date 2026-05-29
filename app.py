@@ -53,7 +53,8 @@ def save_room_to_db(room_code):
                    (room_code,
                     room.get('host_token'),
                     int(room.get('game_started', False)),
-                    json.dumps(room)))
+                    # Exclude timer_thread (Thread object) from JSON — it cannot be serialized
+                    json.dumps({k: v for k, v in room.items() if k != 'timer_thread'})))
     conn.commit()
     conn.close()
 
@@ -191,7 +192,6 @@ def handle_join_room(data):
     # Send current game state to the newly joined player
     if room_data.get('game_started'):
         emit('game_started', to=request.sid)
-
         if room_data.get('round_active') and room_data.get('explainer'):
             # Round is live
             emit('round_started', {
@@ -289,8 +289,6 @@ def start_round_timer(room_code):
             'player': room['explainer'],
             'score': 0
         }
-        room['round_active'] = False
-        room['explainer'] = None
         socketio.emit('round_timeout', to=room_code)
 
         scoreboard = [{'name': name, 'display': str(total)} for name, total in room['players'].items()]
@@ -298,6 +296,10 @@ def start_round_timer(room_code):
             'scoreboard': scoreboard,
             'last_round': room['last_round']
         }, to=room_code)
+
+        # Reset AFTER emitting
+        room['round_active'] = False
+        room['explainer'] = None
 
     thread = threading.Thread(target=timer_task)
     thread.daemon = True
@@ -377,7 +379,7 @@ def handle_round_end(data):
     if player in room_data['players']:
         room_data['players'][player] += round_score
 
-    # Store last round info
+    # Store last round info - use the actual explainer from the room
     room_data['last_round'] = {
         'player': player,
         'score': round_score
@@ -388,7 +390,8 @@ def handle_round_end(data):
 
     emit('scoreboard_update', {
         'scoreboard': scoreboard,
-        'last_round': room_data['last_round']
+        'last_round': room_data['last_round'],
+        'all_cards_done': room_data.get('all_cards_done', False)
     }, to=room_code)
 
     # Reset round state
@@ -427,6 +430,12 @@ def handle_check_room(data):
         # Room exists — confirm it so the player can proceed
         emit('room_exists', {'exists': True})
 
+@socketio.on('all_cards_done')
+def handle_all_cards_done(data):
+    room_code = data.get('room_code')
+    if room_code in rooms:
+        rooms[room_code]['all_cards_done'] = True
+
 @socketio.on('disconnect')
 def handle_disconnect():
     """
@@ -454,6 +463,24 @@ def handle_kick_player(data):
         if player_name in rooms[room_code]['players']:
             del rooms[room_code]['players'][player_name]
             emit('player_kicked', {'player': player_name}, to=room_code)
+
+@socketio.on('new_game')
+def handle_new_game(data):
+    room_code = data.get('room_code')
+    if room_code not in rooms:
+        return
+    room_data = rooms[room_code]
+    room_data['round_active'] = False
+    room_data['explainer'] = None
+    room_data['game_started'] = False
+    room_data['all_cards_done'] = False
+    room_data.pop('last_round', None)
+    # Reset scores
+    for player in room_data['players']:
+        room_data['players'][player] = 0
+    save_room_to_db(room_code)
+    emit('new_game_ready', to=room_code)
+
 
 
 # -------------------- RUN SERVER --------------------

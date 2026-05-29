@@ -805,13 +805,13 @@ Game links are styled as buttons for better UX. */
 }
 
 /* ---- There're no cards left message ---- */
-.main-cards-finished {
+.all-cards-done {
     display: none;
     margin-top: 1.5rem;
     text-align: center;
 }
 
-.main-cards-finished p {
+.all-cards-done p {
     font-size: 1.3rem;
     font-weight: 600;
     color: var(--accent);
@@ -1022,7 +1022,7 @@ Game links are styled as buttons for better UX. */
 .page-game #screen-name,
 .page-game #screen-waiting,
 .page-game #screen-game {
-    padding-top: clamp(1.5rem, 10dvh, 3.5rem);
+    padding-top: 1.5rem;
 }
 
 /* Round in progress: card or timer visible */
@@ -1077,6 +1077,7 @@ Game links are styled as buttons for better UX. */
         }
     }
 }
+
 
 @media (max-width: 768px) {
     .main-title {
