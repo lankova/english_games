@@ -4,6 +4,8 @@ Play games and practice English
 A collection of browser-based games for practising English.  
 Built with Python (Flask) for the backend and JavaScript for the frontend.
 
+You can play the games at http://lankova.tech/
+
 ---
 
 ## 🎲 Games in this project
