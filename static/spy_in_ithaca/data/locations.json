@@ -1,0 +1,56 @@
+{
+  "sets": {
+    "odyssey1": {
+      "label": "Odyssey I",
+      "locations": [
+        {
+          "name": "The Throne Room of Olympus",
+          "image": "/static/spy_in_ithaca/images/throne_room.jpg",
+          "roles": ["Zeus", "Hera", "Athena", "Hermes", "Ares", "Hephaestus", "Apollo"]
+        },
+        {
+          "name": "The Deck of the Argo",
+          "image": "/static/spy_in_ithaca/images/argo_deck.jpg",
+          "roles": ["Captain", "Navigator", "Lookout", "Oarsman", "Cook", "Carpenter", "Sailmaker"]
+        },
+        {
+          "name": "The Palace of Ithaca",
+          "image": "/static/spy_in_ithaca/images/ithaca_palace.jpg",
+          "roles": ["Penelope", "Telemachus", "Eurycleia", "Suitor", "Guard", "Servant", "Bard"]
+        }
+      ]
+    },
+    "odyssey2": {
+      "label": "Odyssey II",
+      "locations": [
+        {
+          "name": "Circe's Enchanted Hall",
+          "image": "/static/spy_in_ithaca/images/circe_hall.jpg",
+          "roles": ["Circe", "Enchanted Sailor", "Lion", "Wolf", "Herbalist", "Cauldron Stirrer", "Potion Taster"]
+        },
+        {
+          "name": "The Underworld of Hades",
+          "image": "/static/spy_in_ithaca/images/underworld.jpg",
+          "roles": ["Hades", "Persephone", "Charon", "Shade of Achilles", "Shade of Tiresias", "Cerberus Keeper", "Judge of the Dead"]
+        },
+        {
+          "name": "The Island of the Sirens",
+          "image": "/static/spy_in_ithaca/images/sirens_island.jpg",
+          "roles": ["Siren Singer", "Shipwrecked Sailor", "Reef Watchman", "Harpist", "Echo", "Drowned Soul", "Coral Collector"]
+        }
+      ]
+    }
+  },
+  "questions": [
+    "What would you hear in this place?",
+    "What colors do you see around you?",
+    "Is this place indoors or outdoors?",
+    "Would you come here alone or with company?",
+    "What smells are in the air?",
+    "Is it day or night right now?",
+    "Would you need special clothes here?",
+    "What sounds are the loudest?",
+    "Is this place sacred or ordinary?",
+    "Would you find food or drink here?"
+  ]
+}

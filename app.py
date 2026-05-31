@@ -9,6 +9,8 @@ import time
 import threading
 import json
 import sqlite3
+import os
+
 
 # Initialize Flask app
 app = Flask(__name__)
@@ -99,6 +101,20 @@ def game1_game():
 @app.route('/describe-and-guess/<room_code>')
 def describe_and_guess(room_code):
     return render_template('game_1_describe_and_guess/game.html')
+
+# ---------- Spy in Ithaca ----------
+@app.route('/spy-in-ithaca/rules')
+def game2_rules():
+    return render_template('spy_in_ithaca/rules.html')
+
+@app.route('/spy-in-ithaca/game')
+def spy_in_ithaca_game():
+    return render_template('spy_in_ithaca/game.html')
+
+@app.route('/spy-in-ithaca/<room_code>')
+def spy_in_ithaca_room(room_code):
+    return render_template('spy_in_ithaca/game.html')
+
 
 # -------------------- WEBSOCKET EVENTS --------------------
 
@@ -493,5 +509,7 @@ init_db()
 load_rooms_from_db()
 
 if __name__ == '__main__':
-    # debug=True auto-restarts when code changes
-    socketio.run(app, debug=True, host='0.0.0.0', port=5000)
+    # Use environment variable to control debug mode: True locally, False in production
+    debug_mode = os.environ.get('FLASK_DEBUG', 'True') == 'True'
+    socketio.run(app, debug=debug_mode, host='0.0.0.0', port=5000)
+

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- Ensures proper display on mobile devices -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>English Games</title>
+    <!-- Favicon (website icon) -->
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+    <!-- Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='global.css') }}">
+</head>
+
+<body>
+    <button id="theme-toggle" class="theme-toggle" title="Switch theme">🌓</button>
+
+    <div class="main-card rules-card"> <!-- Light card with rounded corners - purely decorative -->
+        <h1 class="rules-title">Rules</h1>
+        <p class="howtoplay">
+        One player describes words.<br>
+        Other players try to guess as many words as possible within the time limit (90 seconds).<br><br>
+        Each correct guess gives 1 point to the explainer.<br>
+        The explainer can skip words. The score doesn't change if they skip.
+       </p>
+
+        <a href="{{ url_for('game1_game') }}" class="btn">Create new game</a>
+
+        <!-- Decorative cat image with rules - adds a friendly touch -->
+        <img class="cat-image" src="{{ url_for('static', filename='common/images/orange_cat_rules.png') }}" alt="Orange cat">
+    </div>
+</body>
+
+<script>
+    // Theme toggle
+    const themeToggle = document.getElementById('theme-toggle');
+    const savedTheme = localStorage.getItem('theme');
+
+    if (savedTheme === 'light') {
+        document.body.classList.add('light-theme');
+    }
+
+    themeToggle.addEventListener('click', () => {
+        document.body.classList.toggle('light-theme');
+        const isLight = document.body.classList.contains('light-theme');
+        localStorage.setItem('theme', isLight ? 'light' : 'dark');
+    });
+</script>
+
+</html>
