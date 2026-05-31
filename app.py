@@ -287,15 +287,10 @@ def start_round_timer(room_code):
 
         room['last_round'] = {
             'player': room['explainer'],
-            'score': 0
         }
         socketio.emit('round_timeout', to=room_code)
 
         scoreboard = [{'name': name, 'display': str(total)} for name, total in room['players'].items()]
-        socketio.emit('scoreboard_update', {
-            'scoreboard': scoreboard,
-            'last_round': room['last_round']
-        }, to=room_code)
 
         # Reset AFTER emitting
         room['round_active'] = False
@@ -364,12 +359,18 @@ def handle_score_update(data):
 @socketio.on('round_end')
 def handle_round_end(data):
     room_code = data.get('room_code')
+    if room_code not in rooms:
+        return
+
+    room_data = rooms[room_code]
+    if room_data.get('round_ended'):
+        return
+    room_data['round_ended'] = True
+
     player = data.get('player')
     round_score = data.get('round_score')
     client_score = data.get('round_score', 0)
 
-    if room_code not in rooms:
-        return
 
     room_data = rooms[room_code]
 
@@ -412,6 +413,7 @@ def handle_next_round(data):
     room_data['timer_paused'] = False
     room_data.pop('last_round', None)
     emit('next_round_ready', to=room_code)
+    room_data['round_ended'] = False
 
 # Check if a room exists before the player tries to join
 @socketio.on('check_room')
@@ -474,6 +476,7 @@ def handle_new_game(data):
     room_data['explainer'] = None
     room_data['game_started'] = False
     room_data['all_cards_done'] = False
+    room_data['round_ended'] = False
     room_data.pop('last_round', None)
     # Reset scores
     for player in room_data['players']:

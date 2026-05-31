@@ -285,14 +285,16 @@
             document.getElementById('all-cards-done').style.display = 'none';
             document.getElementById('skipped-cards-dialog').style.display = 'none';
 
-            // Send round data to server
-            socket.emit('round_end', {
-                room_code: currentRoomCode,
-                player: explainerName || playerName,  // fallback на playerName
-                round_score: Number(score)
+            // Only the explainer sends round data to server (only the explainer can get points during the round)
+            if (explainerName === playerName) {
+                socket.emit('round_end', {
+                    room_code: currentRoomCode,
+                    player: playerName,
+                    round_score: Number(score)
                 });
-                score = 0;
             }
+                    score = 0;
+        }
 
         function nextCard() {
         console.log('nextCard called, currentIndex:', currentIndex);
@@ -477,7 +479,7 @@
             // Show who scored and how much this round
             if (data.last_round) {
                 document.getElementById('result-message').textContent =
-                    `${data.last_round.player} got ${data.last_round.score} points this round!`;
+                    `${data.last_round.player} got ${data.last_round.score} point${data.last_round.score !== 1 ? 's' : ''} this round!`
             } else {
                 document.getElementById('result-message').textContent = 'Round finished!';
             }
