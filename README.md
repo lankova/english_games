@@ -10,10 +10,10 @@ You can play the games at http://lankova.tech/
 
 ## 🎲 Games in this project
 
-| Game | Description |
-|------|-------------|
-| **Alias** | Explain the word to your friends within a time limit. |
-| *More to come* | 
+| Game                   | Description                                           |
+|------------------------|-------------------------------------------------------|
+| **Describe and Guess** | A word-guessing adventure. 2+ players                 |
+| ***Spy in Ithaca***    | Ask questions. Trust no one. Find the spy. 3+ players |
 
 ---
 
@@ -21,17 +21,16 @@ You can play the games at http://lankova.tech/
 
 - **Backend**: Python, Flask
 - **Frontend**: HTML, CSS, JavaScript
-- **Data storage**: JSON files (cards, rooms, players)
+- **Data storage**: SQLite (rooms, players), JSON files (game cards)
 - **Version control**: Git, GitHub
 
 ---
 
-## 🚀 How to run locally
+## 🧪 Testing
 
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/Lidia9696/english_games.git
-   cd english_games
+24 automated tests with pytest + Allure.
+
+![Allure Report](screenshots/allure_report.png)
 
  ## 📌 Status
 

@@ -92,6 +92,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         save_room_to_db(room_code, rooms)
 
         emit('player_joined', {
+            'player': player_name,
             'players': list(room_data['players'].keys())
         }, to=room_code)
 
@@ -155,6 +156,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
             return
 
         room_data['explainer'] = player_name
+        room_data['round_active'] = True
 
         emit('round_started', {
             'explainer': player_name,
@@ -214,7 +216,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
             return
         room_data = rooms[room_code]
         room_data.pop('last_round', None)
-        if not room_data['round_active'] and room_data['explainer'] is not None:
+        if room_data['explainer'] is not None:
             room_data['timer_time_left'] = room_data['duration']
             room_data['timer_paused'] = False
             emit('timer_update', {'time_left': room_data['timer_time_left']}, to=room_code)
