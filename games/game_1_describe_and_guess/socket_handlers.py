@@ -1,3 +1,6 @@
+import json
+import os
+import random
 import secrets
 import time
 import threading
@@ -8,6 +11,39 @@ from flask_socketio import emit, join_room
 rooms = None
 save_room_to_db = None
 generate_room_code = None
+
+_WORDS_PATH = os.path.join(
+    os.path.dirname(__file__), "..", "..", "static", "game_1_describe_and_guess", "data", "words.json"
+)
+_ALL_WORDS = None
+
+
+def _load_all_words():
+    global _ALL_WORDS
+    if _ALL_WORDS is None:
+        with open(_WORDS_PATH, "r", encoding="utf-8") as f:
+            _ALL_WORDS = json.load(f)
+    return _ALL_WORDS
+
+
+def _init_word_pool(room_data):
+    words = list(_load_all_words())
+    random.shuffle(words)
+    room_data["word_pool"] = words
+    room_data["word_pool_index"] = 0
+
+
+def _next_word(room_data):
+    pool = room_data.get("word_pool")
+    if not pool:
+        _init_word_pool(room_data)
+        pool = room_data["word_pool"]
+    idx = room_data.get("word_pool_index", 0)
+    if idx >= len(pool):
+        return None
+    word = pool[idx]
+    room_data["word_pool_index"] = idx + 1
+    return word
 
 
 def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
@@ -141,6 +177,8 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
             return
 
         rooms[room_code]['game_started'] = True
+        rooms[room_code]['all_cards_done'] = False
+        _init_word_pool(rooms[room_code])
         emit('game_started', to=room_code)
         save_room_to_db(room_code, rooms)
 
@@ -164,6 +202,21 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         }, to=room_code)
 
         room_data.pop('last_round', None)
+
+    @socketio.on('request_word')
+    def handle_request_word(data):
+        room_code = data.get('room_code')
+        player_name = data.get('player_name')
+        if room_code not in rooms:
+            return {'word': None}
+        room_data = rooms[room_code]
+        if room_data.get('explainer') != player_name:
+            return {'word': None}
+        word = _next_word(room_data)
+        if word is None:
+            room_data['all_cards_done'] = True
+        save_room_to_db(room_code, rooms)
+        return {'word': word}
 
     def start_round_timer(room_code):
         if room_code not in rooms:
@@ -386,6 +439,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         room_data['all_cards_done'] = False
         room_data['round_ended'] = False
         room_data.pop('last_round', None)
+        _init_word_pool(room_data)
         # Reset scores
         for player in room_data['players']:
             room_data['players'][player] = 0

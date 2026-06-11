@@ -1,8 +1,10 @@
-from app import app, socketio
-import allure
+"""Automated tests for Describe & Guess (game 1)."""
 import time
+
+import allure
 import pytest
-from app import rooms
+
+from app import app, rooms_game1 as rooms, socketio
 
 
 # ========================
@@ -46,8 +48,8 @@ def guest_client_factory():
 
 
 @pytest.fixture(autouse=True)
-def mock_db(monkeypatch):
-    """Prevent database writes during tests"""
+def mock_describe_db(monkeypatch):
+    """Prevent database writes during tests."""
 
     def mock_save(*args, **kwargs):
         pass
@@ -61,7 +63,7 @@ def mock_db(monkeypatch):
 
 @allure.epic("Describe & Guess Game")
 @allure.feature("Room Management")
-class TestRoomManagement:
+class TestDnGRoomManagement:
 
     @allure.story("Create a new game room")
     @allure.title("Host creates room - should return room code and player list")
@@ -156,7 +158,7 @@ class TestRoomManagement:
 
 @allure.epic("Describe & Guess Game")
 @allure.feature("Game Flow")
-class TestGameFlow:
+class TestDnGGameFlow:
 
     @allure.story("Start the game")
     @allure.title("Host starts game - should broadcast game_started event")
@@ -176,7 +178,7 @@ class TestGameFlow:
         assert 'game_started' in event_names, f"Expected 'game_started' in {event_names}"
 
         # Verify game_started flag in rooms dict
-        from app import rooms
+        from app import rooms_game1 as rooms
         assert rooms[room_code]['game_started'] is True
 
     @allure.story("Block non-host from starting")
@@ -229,7 +231,7 @@ class TestGameFlow:
         assert received[0]['args'][0]['duration'] == 90
 
         # Verify room state
-        from app import rooms
+        from app import rooms_game1 as rooms
         assert rooms[room_code]['explainer'] == 'Alice'
         assert rooms[room_code]['round_active'] is True
 
@@ -276,7 +278,7 @@ class TestGameFlow:
 
 @allure.epic("Describe & Guess Game")
 @allure.feature("Multi-Client Scenarios")
-class TestMultiClient:
+class TestDnGMultiClient:
 
     @allure.story("Host and guest receive game_started")
     @allure.title("Both players should get game_started when host starts")
@@ -310,7 +312,7 @@ class TestMultiClient:
         assert 'game_started' in guest_events, "Guest should receive game_started"
 
         # Verify game state
-        from app import rooms
+        from app import rooms_game1 as rooms
         assert rooms[room_code]['game_started'] is True
 
     @allure.story("Host disconnect notifies guests")
@@ -341,7 +343,7 @@ class TestMultiClient:
         assert len(disconnect_events) > 0, "Guest should receive host_disconnected event"
 
         # Verify room state
-        from app import rooms
+        from app import rooms_game1 as rooms
         if room_code in rooms:
             assert rooms[room_code]['host_sid'] is None, "Host SID should be cleared"
 
@@ -374,7 +376,7 @@ class TestMultiClient:
         assert room_event['args'][0]['is_host'] is True, "Reconnected host should have is_host=True"
 
         # Verify room state updated
-        from app import rooms
+        from app import rooms_game1 as rooms
         assert rooms[room_code]['host_sid'] is not None, "Host SID should be restored"
 
 
@@ -384,7 +386,7 @@ class TestMultiClient:
 
 @allure.epic("Describe & Guess Game")
 @allure.feature("Scoring")
-class TestScoring:
+class TestDnGScoring:
 
     @allure.story("Round end scoreboard")
     @allure.title("Round ends - should return correct score in scoreboard_update")
@@ -426,7 +428,7 @@ class TestScoring:
 
 @allure.epic("Describe & Guess Game")
 @allure.feature("State Management")
-class TestStateManagement:
+class TestDnGStateManagement:
 
     @allure.story("Next round transitions")
     @allure.title("After round ends, next_round should reset round_ended flag")
@@ -459,7 +461,7 @@ class TestStateManagement:
         assert 'next_round_ready' in event_names, f"Expected 'next_round_ready', got {event_names}"
 
         # Verify room state
-        from app import rooms
+        from app import rooms_game1 as rooms
         assert rooms[room_code]['round_ended'] is False, "round_ended flag should be cleared"
 
     @allure.story("Idempotent round_end")
@@ -506,7 +508,7 @@ class TestStateManagement:
 
 @allure.epic("Describe & Guess Game")
 @allure.feature("Timer Controls")
-class TestTimer:
+class TestDnGTimer:
 
     @allure.story("Pause the countdown")
     @allure.title("Pause timer - should set timer_paused flag and save remaining time")
@@ -528,7 +530,7 @@ class TestTimer:
             'time_left': 45
         })
 
-        from app import rooms
+        from app import rooms_game1 as rooms
         assert rooms[room_code]['timer_paused'] is True, "Timer should be paused"
         assert rooms[room_code]['timer_time_left'] == 45, f"Expected 45, got {rooms[room_code]['timer_time_left']}"
 
@@ -575,7 +577,7 @@ class TestTimer:
         socket_client.get_received()
 
         # Set duration to 2 seconds for fast timeout
-        from app import rooms
+        from app import rooms_game1 as rooms
         rooms[room_code]['duration'] = 2
 
         socket_client.emit('start_timer', {'room_code': room_code})
@@ -604,7 +606,7 @@ class TestTimer:
 
 @allure.epic("Describe & Guess Game")
 @allure.feature("Edge Cases")
-class TestEdgeCases:
+class TestDnGEdgeCases:
 
     @allure.story("Start a new game")
     @allure.title("New game - should emit new_game_ready and reset all scores to 0")
@@ -624,7 +626,7 @@ class TestEdgeCases:
         assert received[0]['name'] == 'new_game_ready', \
             f"Expected 'new_game_ready', got '{received[0]['name']}'"
 
-        from app import rooms
+        from app import rooms_game1 as rooms
         for player, score in rooms[room_code]['players'].items():
             assert score == 0, f"Score for '{player}' should be 0, got {score}"
 
@@ -638,7 +640,7 @@ class TestEdgeCases:
 
         socket_client.emit('all_cards_done', {'room_code': room_code})
 
-        from app import rooms
+        from app import rooms_game1 as rooms
         assert rooms[room_code]['all_cards_done'] is True, "Flag 'all_cards_done' should be set to True"
 
     @allure.story("Kick a player")
@@ -672,7 +674,7 @@ class TestEdgeCases:
         assert received[0]['args'][0]['player'] == 'Bob'
 
         # Verify Bob removed from room
-        from app import rooms
+        from app import rooms_game1 as rooms
         assert 'Bob' not in rooms[room_code]['players'], "Bob should be removed from players list"
 
         guest.disconnect()
@@ -684,7 +686,7 @@ class TestEdgeCases:
 
 @allure.epic("Describe & Guess Game")
 @allure.feature("HTTP Routes")
-class TestRoutes:
+class TestDnGRoutes:
 
     @pytest.fixture
     def http_client(self):

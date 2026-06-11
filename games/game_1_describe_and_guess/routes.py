@@ -1,5 +1,5 @@
 from flask import render_template
-
+import os
 
 def register_routes(app):
     """Register all routes for Game 1."""
@@ -15,3 +15,4 @@ def register_routes(app):
     @app.route('/describe-and-guess/<room_code>')
     def describe_and_guess(room_code):
         return render_template('game_1_describe_and_guess/game.html')
+

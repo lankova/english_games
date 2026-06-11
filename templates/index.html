@@ -2,12 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <!-- Ensures proper display on mobile devices -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>English Games</title>
-    <!-- Favicon (website icon) -->
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
-    <!-- Styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='global.css') }}">
 </head>
 
@@ -17,12 +14,12 @@
     <div class="main-card"> <!-- Light card with rounded corners — purely decorative -->
         <div class="main-content">
             <!-- Main headline -->
-            <p class="main-title">Play games &<br>practice English</p>
+            <p class="main-title">Play games &<br>practice English😊</p>
 
             <!-- Choose a game -->
             <p class="subtitle">Choose a game:</p>
 
-            <!-- Container for game game links — uses flexbox for layout -->
+            <!-- Container for game links: uses flexbox for layout -->
             <div class="links-container">
                 <!-- Game links: actual game pages will go here -->
                 <a href="{{ url_for('game1_rules') }}">
@@ -52,7 +49,7 @@
             </div>
         </div> <!-- End of main content div -->
 
-        <!-- Decorative cat image — adds a friendly touch -->
+        <!-- Orange cat image, adds a friendly touch -->
         <div class="cat-wrapper">
             <img class="cat-image" src="{{ url_for('static', filename='common/images/orange_cat.png') }}" alt="Orange cat">
         </div>

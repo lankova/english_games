@@ -5,6 +5,9 @@ import json
 
 DB_PATH = 'game.db'
 
+# Runtime-only fields kept in memory but never persisted.
+_NON_SERIALIZABLE_ROOM_KEYS = frozenset({'timer_thread', 'question_thread'})
+
 
 def init_db():
     """Create the database tables if they don't exist yet."""
@@ -33,8 +36,10 @@ def save_room_to_db(room_code, rooms):
                    (room_code,
                     room.get('host_token'),
                     int(room.get('game_started', False)),
-                    # Exclude timer_thread (Thread object) from JSON — it cannot be serialized
-                    json.dumps({k: v for k, v in room.items() if k != 'timer_thread'})))
+                    json.dumps({
+                        k: v for k, v in room.items()
+                        if k not in _NON_SERIALIZABLE_ROOM_KEYS
+                    })))
     conn.commit()
     conn.close()
 

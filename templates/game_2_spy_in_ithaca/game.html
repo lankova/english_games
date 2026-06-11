@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- Ensures proper display on mobile devices -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spy in Ithaca</title>
+    <!-- Favicon (website icon) -->
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+    <!-- Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='global.css') }}">
+</head>
+
+<body class="page-game">
+    <button id="theme-toggle" class="theme-toggle" title="Switch theme">🌓</button>
+
+    <div class="main-card"> <!-- Light card with rounded corners - purely decorative -->
+
+        <!-- Screen 1: enter your name -->
+        <div id="screen-name">
+            <h1>Enter your name</h1>
+            <input type="text" id="playerName" minlength="1" maxlength="20">
+            <p id="name-error" class="name-error"></p>
+            <button id="submit_name_btn" class="ok-button">OK</button>
+        </div>
+
+        <!-- Screen 2: waiting room and game settings -->
+        <div id="screen-waiting" style="display: none;">
+            <div class="invite-link-container">
+                <p class="invite-link-title">Copy this link and send it to all players</p>
+                <div class="invite-link-row">
+                    <input id="invite-link-input" class="invite-link-input" type="text" readonly>
+                    <button id="copy-invite-btn" class="invite-link-copy-btn" type="button">Copy</button>
+                </div>
+                <p id="copy-invite-status" class="invite-link-status"></p>
+            </div>
+
+            <h2 class="lobby-players-title">Players in the game</h2>
+            <ul id="players-list" class="players-list-vertical"></ul>
+
+            <form id="setup-form" class="setup-form">
+                <label>
+                    Number of spies
+                    <select id="setting-spy-count">
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="0">1 or 2 spies</option>
+                    </select>
+                </label>
+
+                <label class="setup-checkbox">
+                    <input type="checkbox" id="setting-extra-roles">
+                    Extra roles at the location
+                </label>
+
+                <label>
+                    Round length (minutes)
+                    <select id="setting-duration">
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                        <option value="8">8</option>
+                        <option value="9" selected>9</option>
+                        <option value="10">10</option>
+                        <option value="11">11</option>
+                        <option value="12">12</option>
+                        <option value="13">13</option>
+                        <option value="14">14</option>
+                        <option value="15">15</option>
+                    </select>
+                </label>
+
+                <label>
+                    Location set
+                    <select id="setting-location-set">
+                        <option value="myths">Myths</option>
+                        <option value="odyssey">Odyssey</option>
+                        <option value="modern_world">Modern world</option>
+                    </select>
+                </label>
+            </form>
+
+            <p id="lobby-error" class="name-error"></p>
+
+            <div class="startGame">
+                <button id="startGame" class="ok-button" type="button">Start the game</button>
+            </div>
+        </div>
+
+        <!-- Screen 3: private role reveal -->
+        <div id="screen-role" class="role-reveal-screen" style="display: none;">
+            <div id="role-spy" class="role-reveal-card role-card-spy" style="display: none;">
+                <h2 class="role-spy-title">🕵️ You're the spy!</h2>
+                <div class="role-spy-body">
+                    <p>Your mission: stay hidden and figure out where you are.</p>
+                    <p class="role-spy-wins-title">You win if:</p>
+                    <ul class="role-spy-wins-list">
+                        <li>You correctly guess the secret location by tapping a picture, OR</li>
+                        <li>Time runs out within <strong id="role-spy-duration">9</strong> minutes before the group catches you, OR</li>
+                        <li>The group votes but not everyone agrees — if even one player disagrees, you win.</li>
+                    </ul>
+                    <p class="role-spy-footer">Listen carefully. Blend in. 🎭</p>
+                </div>
+            </div>
+
+            <div id="role-civilian" class="role-reveal-card role-card-civilian" style="display: none;">
+                <p id="role-reveal-role" class="role-reveal-line" style="display: none;">
+                    Your role: <strong id="role-reveal-role-name"></strong>
+                </p>
+                <p class="role-reveal-line role-reveal-location-line">
+                    Location: <strong id="role-reveal-location"></strong>
+                </p>
+                <p class="role-reveal-hint">Don't reveal the location to others.</p>
+            </div>
+
+            <p id="role-waiting-message" class="role-waiting-message" style="display: none;"></p>
+            <button id="role-continue-btn" class="ok-button" type="button">OK</button>
+        </div>
+
+        <!-- Screen 4: main round (timer, locations, vote, results) -->
+        <div id="screen-locations" class="spy-play-screen" style="display: none;">
+            <div class="spy-play-game-ui">
+                <div class="spy-play-top">
+                    <div class="spy-timer-row">
+                        <p class="guessing-timer-label">Time left</p>
+                        <div id="round-timer" class="guessing-timer spy-timer">9:00</div>
+                        <div class="spy-timer-controls">
+                            <button id="pause-timer-btn" class="timer-control-btn">Pause</button>
+                            <button id="resume-timer-btn" class="timer-control-btn" style="display: none;">Resume</button>
+                        </div>
+                    </div>
+
+                    <div id="spy-round-info" class="spy-round-info">
+                        <p id="info-location" class="info-location"></p>
+                        <p id="info-role" class="info-role"></p>
+                    </div>
+
+                    <div id="spy-hint-banner" class="spy-hint-banner" style="display: none;">
+                        <p class="spy-hint-banner-text">
+                            Tap a location to mark it (only you see this). Tap a name to cross it out.
+                        </p>
+                        <button
+                            id="spy-hint-dismiss-btn"
+                            type="button"
+                            class="spy-hint-dismiss-btn"
+                            aria-label="Dismiss hint"
+                        >×</button>
+                    </div>
+
+                    <div id="players-wrap-game" class="players-wrap players-wrap-game"></div>
+                </div>
+
+                <!-- Vote / spy-guess overlays (shown instead of normal play actions) -->
+                <div id="spy-play-interrupt-zone" class="spy-play-interrupt-zone">
+                <div id="vote-nominate-panel" class="vote-panel" style="display: none;">
+                    <p id="vote-nominate-status" class="vote-prompt"></p>
+                    <div id="vote-nominate-initiator-view" class="vote-nominate-initiator-view" style="display: none;">
+                        <div class="vote-nominate-picker">
+                            <p class="vote-nominate-player-label">Choose a player</p>
+                            <select id="vote-nominate-select" class="vote-nominate-select"></select>
+                        </div>
+                        <button id="vote-nominate-btn" class="spy-action-btn vote-btn-yes" type="button">
+                            Accuse this player
+                        </button>
+                    </div>
+                </div>
+
+                <div id="vote-panel" class="vote-panel" style="display: none;">
+                    <p id="vote-context-line" class="vote-prompt"></p>
+                    <p id="vote-question-line" class="vote-prompt">
+                        Do you think that <strong id="vote-accused-name"></strong> <span id="vote-spy-phrase">is the spy</span>?
+                    </p>
+
+                    <div id="vote-voter-view" style="display: none;">
+                        <div class="vote-actions">
+                            <button id="vote-yes-btn" class="spy-action-btn vote-btn-yes" type="button">
+                                Yes
+                            </button>
+                            <button id="vote-no-btn" class="spy-action-btn vote-btn-no" type="button">
+                                No
+                            </button>
+                        </div>
+                        <p id="vote-status" class="vote-status"></p>
+                    </div>
+
+                    <div id="vote-accused-view" style="display: none;">
+                        <p class="vote-accused-wait">
+                            Sit tight and wait for the results!
+                        </p>
+                    </div>
+
+                    <div id="vote-initiator-view" style="display: none;">
+                        <p class="vote-accused-wait">
+                            Waiting for the other players to vote…
+                        </p>
+                    </div>
+                </div>
+
+                <p id="vote-cancel-banner" class="vote-cancel-banner" style="display: none;"></p>
+
+                <div id="spy-guess-panel" class="vote-panel spy-guess-panel" style="display: none;">
+                    <p id="spy-guess-wait-view" class="spy-guess-wait" style="display: none;">
+                        <span id="spy-guess-spy-name"></span> is the spy.
+                        <span id="spy-guess-spy-name-2"></span> is guessing the location.
+                    </p>
+                    <p id="spy-guess-prompt-view" class="spy-guess-prompt" style="display: none;">
+                        Guess the place (tap the picture).
+                    </p>
+                </div>
+                </div>
+
+                <div class="spy-play-scroll">
+                    <div id="locations-grid" class="locations-grid"></div>
+                </div>
+
+                <p id="questions-block" class="questions-block"></p>
+
+                <div id="playing-actions" class="spy-round-actions">
+                    <button id="vote-btn" class="spy-action-btn" type="button">Let's vote</button>
+                    <button id="spy-guess-btn" class="spy-action-btn spy-action-btn-accent" style="display: none;">
+                        I want to guess the location
+                    </button>
+                </div>
+            </div>
+
+            <div id="round-result" style="display: none;">
+                <h2 id="result-message"></h2>
+                <p id="secret-location-reveal"></p>
+            </div>
+
+            <div id="score-table" style="display: none;">
+                <table id="results-table">
+                    <thead>
+                        <tr><th>Player</th><th>Total Score</th></tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <button id="next-round-btn" style="display: none;">Next round</button>
+            <button id="back-to-main-btn" style="display: none;">Back to the main page</button>
+        </div>
+
+        <!-- Screen 5: room not found -->
+        <div id="screen-error" style="display: none;">
+            <h1>The room doesn't exist</h1>
+            <button id="goHomeBtn" class="ok-button">Go to the main page</button>
+        </div>
+
+    </div>
+
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='game_2_spy_in_ithaca/game.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+{
+  "locations": [
+    {"name": "Ancient Theater", "image": "myths/ancient_theater.jpg"},
+    {"name": "Battlefield", "image": "myths/battlefield.jpg"},
+    {"name": "Colosseum", "image": "myths/colosseum.jpg"},
+    {"name": "Cyclops' Island", "image": "myths/cyclops_island.jpg"},
+    {"name": "Fountain of Youth", "image": "myths/fountain_of_youth.jpg"},
+    {"name": "Garden of the Gods", "image": "myths/garden_of_the_gods.jpg"},
+    {"name": "Golden Palace", "image": "myths/golden_palace.jpg"},
+    {"name": "Greek Temple", "image": "myths/greek_temple.jpg"},
+    {"name": "Ithaca", "image": "myths/ithaca.jpg"},
+    {"name": "Labyrinth of the Minotaur", "image": "myths/labyrinth_of_the_minotaur.jpg"},
+    {"name": "Marketplace", "image": "myths/marketplace.jpg"},
+    {"name": "Mountain Cave", "image": "myths/mountain_cave.jpg"},
+    {"name": "Mount Olympus", "image": "myths/mount_olympus.jpg"},
+    {"name": "Ship at Sea", "image": "myths/ship_at_sea.jpg"},
+    {"name": "Sirens' Shore", "image": "myths/sirens_shore.jpg"},
+    {"name": "Sparta", "image": "myths/sparta.jpg"},
+    {"name": "Trojan Horse", "image": "myths/trojan_horse.jpg"},
+    {"name": "Troy", "image": "myths/troy.jpg"},
+    {"name": "Underworld", "image": "myths/underworld.jpg"},
+    {"name": "Village in Ancient Greece", "image": "myths/village_in_ancient_greece.jpg"},
+    {"name": "Winged Horse Stable", "image": "myths/winged_horse_stable.jpg"}
+  ]
+}
