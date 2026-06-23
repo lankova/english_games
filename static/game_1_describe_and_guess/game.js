@@ -7,8 +7,6 @@ function shuffleArray(array) {
     return shuffled;
 }
 
-// Create a WebSocket connection to the server.
-// This socket acts as a two‑way communication channel for live game events.
 const socket = io();
 
 let currentRoomCode = null;
@@ -78,7 +76,7 @@ function updatePlayersList(playersArray) {
         const li = document.createElement('li');
         li.setAttribute('data-player', name);
         li.textContent = name;
-        playersList.appendChild(li);   // ← исправлено
+        playersList.appendChild(li);
     });
 }
 

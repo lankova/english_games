@@ -7,9 +7,9 @@ import pytest
 from app import app, rooms_game1 as rooms, socketio
 
 
-# ========================
+# =========
 # FIXTURES
-# ========================
+# =========
 
 @pytest.fixture
 def socket_client():
@@ -57,16 +57,16 @@ def mock_describe_db(monkeypatch):
     monkeypatch.setattr('games.game_1_describe_and_guess.socket_handlers.save_room_to_db', mock_save)
 
 
-# ========================
+# ======================
 # ROOM MANAGEMENT TESTS
-# ========================
+# ======================
 
 @allure.epic("Describe & Guess Game")
 @allure.feature("Room Management")
 class TestDnGRoomManagement:
 
     @allure.story("Create a new game room")
-    @allure.title("Host creates room - should return room code and player list")
+    @allure.title("Host creates room")
     @allure.severity(allure.severity_level.CRITICAL)
     def test_create_room(self, socket_client):
         socket_client.emit('create_room', {'name': 'Alice'})
@@ -152,9 +152,9 @@ class TestDnGRoomManagement:
             f"Expected 'already taken', got '{received[0]['args'][0]['message']}'"
 
 
-# ========================
+# ================
 # GAME FLOW TESTS
-# ========================
+# ================
 
 @allure.epic("Describe & Guess Game")
 @allure.feature("Game Flow")
@@ -272,9 +272,9 @@ class TestDnGGameFlow:
         guest.disconnect()
 
 
-# ========================
+# ====================
 # MULTI-CLIENT TESTS
-# ========================
+# ====================
 
 @allure.epic("Describe & Guess Game")
 @allure.feature("Multi-Client Scenarios")
@@ -380,9 +380,9 @@ class TestDnGMultiClient:
         assert rooms[room_code]['host_sid'] is not None, "Host SID should be restored"
 
 
-# ========================
+# ==============
 # SCORING TESTS
-# ========================
+# ==============
 
 @allure.epic("Describe & Guess Game")
 @allure.feature("Scoring")
@@ -502,9 +502,9 @@ class TestDnGStateManagement:
             "Second round_end should be ignored and not emit another scoreboard_update"
 
 
-# ========================
+# ======================
 # TIMER CONTROLS TESTS
-# ========================
+# ======================
 
 @allure.epic("Describe & Guess Game")
 @allure.feature("Timer Controls")
@@ -600,9 +600,9 @@ class TestDnGTimer:
         assert rooms[room_code]['round_active'] is False, "Round should be inactive after timeout"
 
 
-# ========================
+# ==================
 # EDGE CASES TESTS
-# ========================
+# ==================
 
 @allure.epic("Describe & Guess Game")
 @allure.feature("Edge Cases")
@@ -680,9 +680,9 @@ class TestDnGEdgeCases:
         guest.disconnect()
 
 
-# ========================
+# ==================
 # HTTP ROUTES TESTS
-# ========================
+# ==================
 
 @allure.epic("Describe & Guess Game")
 @allure.feature("HTTP Routes")

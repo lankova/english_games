@@ -8,6 +8,17 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app import app, socketio, rooms_game1, rooms_game2
 
 
+def pytest_configure(config):
+    config.addinivalue_line(
+        "markers",
+        "load: slow multi-room load tests (10 rooms x 15 players)",
+    )
+    config.addinivalue_line(
+        "markers",
+        "live: tests against a running server (set LIVE_TESTS_OK=1)",
+    )
+
+
 @pytest.fixture
 def test_app():
     """Flask test client."""

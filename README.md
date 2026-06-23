@@ -1,3 +1,4 @@
+![Logo](.github/profile.png)
 # english_games 🎮
 Play games and practice English
 

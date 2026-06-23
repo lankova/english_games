@@ -1,4 +1,3 @@
-// Create a WebSocket connection to the server.
 const socket = io();
 
 // Re-attach sid after reconnect so mid-game events still reach this client.
@@ -21,9 +20,57 @@ let spyGuessActive = false;
 let guessSpyName = null;
 let guessSubmitted = false;
 let roundInterruptActive = false;
+let sessionRestorePending = false;
 
-const LOCATIONS_IMAGE_BASE = '/static/game_2_spy_in_ithaca/images/locations/';
-const PLAY_HINT_DISMISSED_KEY = 'spy_in_ithaca_play_hint_dismissed';
+function completeSessionRestore() {
+    sessionRestorePending = false;
+}
+
+function completeSessionRestoreIfPending() {
+    if (sessionRestorePending) {
+        completeSessionRestore();
+    }
+}
+
+const PLAYER_SESSION_KEY = 'spy_in_ithaca_player_session';
+
+function savePlayerSession() {
+    if (!currentRoomCode || !playerName) return;
+    sessionStorage.setItem(PLAYER_SESSION_KEY, JSON.stringify({
+        roomCode: currentRoomCode,
+        playerName,
+    }));
+}
+
+function loadPlayerSession(roomCode) {
+    try {
+        const raw = sessionStorage.getItem(PLAYER_SESSION_KEY);
+        if (!raw) return null;
+        const data = JSON.parse(raw);
+        if (data.roomCode === roomCode && data.playerName) {
+            return data.playerName;
+        }
+    } catch (_) {
+        // ignore invalid sessionStorage payload
+    }
+    return null;
+}
+
+function clearPlayerSession() {
+    sessionStorage.removeItem(PLAYER_SESSION_KEY);
+}
+
+function restorePlayerSessionFromUrl() {
+    const roomCode = getRoomFromUrl();
+    if (!roomCode) return;
+    currentRoomCode = roomCode;
+    const savedName = loadPlayerSession(roomCode);
+    if (!savedName) return;
+    playerName = savedName;
+    sessionRestorePending = true;
+    const input = document.getElementById('playerName');
+    if (input) input.value = savedName;
+}
 
 // Server uses player_name to resolve sid after refresh or reconnect.
 function emitWithPlayer(event, payload = {}) {
@@ -37,6 +84,13 @@ function emitWithPlayer(event, payload = {}) {
 
 function syncPlayerSession() {
     if (!currentRoomCode || !playerName) return;
+    if (sessionRestorePending) {
+        socket.emit('spy_join_room', {
+            room_code: currentRoomCode,
+            name: playerName,
+        });
+        return;
+    }
     socket.emit('spy_sync_session', {
         room_code: currentRoomCode,
         player_name: playerName,
@@ -161,6 +215,63 @@ function openLobbyScreen() {
     applySetupUIFromSettings();
     showLobbyError('');
     document.getElementById('screen-waiting').style.display = 'flex';
+    updateNewRoundButtonVisibility();
+    completeSessionRestoreIfPending();
+}
+
+let cachedVoteBtnWidth = 0;
+
+function syncRestartRoundButtonWidth() {
+    const voteBtn = document.getElementById('vote-btn');
+    const restartBtn = document.getElementById('new-round-btn');
+    if (!voteBtn || !restartBtn) return;
+
+    if (!restartBtn.classList.contains('spy-new-round-btn--play')) {
+        restartBtn.style.width = '';
+        return;
+    }
+
+    requestAnimationFrame(() => {
+        const width = voteBtn.getBoundingClientRect().width;
+        if (width > 0) {
+            cachedVoteBtnWidth = width;
+        }
+        const targetWidth = width > 0 ? width : cachedVoteBtnWidth;
+        if (targetWidth > 0) {
+            restartBtn.style.width = `${targetWidth}px`;
+        }
+    });
+}
+
+function updateNewRoundButtonVisibility() {
+    const btn = document.getElementById('new-round-btn');
+    if (!btn || !currentRoomCode || !playerName) {
+        if (btn) btn.style.display = 'none';
+        return;
+    }
+    const roleScreen = document.getElementById('screen-role').style.display === 'flex';
+    const playScreen = document.getElementById('screen-locations').style.display === 'flex';
+    btn.style.display = (roleScreen || playScreen) ? 'inline-block' : 'none';
+    btn.classList.toggle('spy-new-round-btn--play', playScreen);
+    syncRestartRoundButtonWidth();
+}
+
+function resetClientRoundState() {
+    myRole = null;
+    localMarkedLocations = new Set();
+    localCrossedPlayers = new Set();
+    myVoteSubmitted = false;
+    currentVoteAccused = null;
+    currentVoteInitiator = null;
+    myRoleReadySubmitted = false;
+    spyGuessActive = false;
+    guessSpyName = null;
+    guessSubmitted = false;
+    roundInterruptActive = false;
+    document.getElementById('next-round-btn').style.display = 'none';
+    document.getElementById('back-to-main-btn').style.display = 'none';
+    document.getElementById('round-result').style.display = 'none';
+    document.getElementById('score-table').style.display = 'none';
 }
 
 function collectSettingsPayload() {
@@ -242,9 +353,13 @@ function ensurePlayingScreenVisible() {
 
 function updateSpyGuessButtonVisibility() {
     const btn = document.getElementById('spy-guess-btn');
+    const actions = document.getElementById('playing-actions');
     if (!btn) return;
     const show = myRole && myRole.is_spy && !roundInterruptActive;
     btn.style.display = show ? 'inline-block' : 'none';
+    if (actions) {
+        actions.classList.toggle('spy-round-actions--spy', Boolean(show));
+    }
 }
 
 function showGameBanner(message, durationMs = 5000) {
@@ -268,16 +383,31 @@ function updateTimerControlsForPause() {
     document.getElementById('pause-timer-btn').style.display = 'none';
     document.getElementById('resume-timer-btn').style.display = roundInterruptActive
         ? 'none'
-        : 'inline-block';
+        : 'inline-flex';
 }
 
 // Vote and spy-guess pause normal play; timer stays frozen until resolved or cancelled.
 function hideAllInterruptPanels() {
     document.getElementById('vote-panel').style.display = 'none';
     document.getElementById('vote-nominate-panel').style.display = 'none';
+    document.getElementById('final-vote-panel').style.display = 'none';
     document.getElementById('spy-guess-panel').style.display = 'none';
     document.getElementById('spy-guess-wait-view').style.display = 'none';
     document.getElementById('spy-guess-prompt-view').style.display = 'none';
+}
+
+function updateLocationsCaptions() {
+    const spyCaption = document.getElementById('spy-locations-caption');
+    const civilianCaption = document.getElementById('civilian-locations-caption');
+    const scrollHidden = document.querySelector('.spy-play-scroll')?.style.display === 'none';
+    const showBase = Boolean(myRole && !roundInterruptActive && !scrollHidden);
+
+    if (spyCaption) {
+        spyCaption.style.display = showBase && myRole.is_spy ? 'block' : 'none';
+    }
+    if (civilianCaption) {
+        civilianCaption.style.display = showBase && !myRole.is_spy ? 'block' : 'none';
+    }
 }
 
 function enterRoundInterruptMode() {
@@ -285,10 +415,10 @@ function enterRoundInterruptMode() {
     hideAllInterruptPanels();
     document.getElementById('playing-actions').style.display = 'none';
     document.getElementById('questions-block').style.display = 'none';
-    document.getElementById('spy-hint-banner').style.display = 'none';
     document.getElementById('vote-cancel-banner').style.display = 'none';
     document.getElementById('pause-timer-btn').style.display = 'none';
     document.getElementById('resume-timer-btn').style.display = 'none';
+    updateLocationsCaptions();
 }
 
 function exitRoundInterruptMode() {
@@ -297,13 +427,17 @@ function exitRoundInterruptMode() {
     guessSpyName = null;
     guessSubmitted = false;
     hideAllInterruptPanels();
+    const locationsScroll = document.querySelector('.spy-play-scroll');
+    if (locationsScroll) locationsScroll.style.display = '';
     document.getElementById('playing-actions').style.display = 'flex';
     document.getElementById('vote-btn').style.display = 'inline-block';
     document.getElementById('questions-block').style.display = 'block';
-    document.getElementById('pause-timer-btn').style.display = 'inline-block';
+    applyRoleToLocationsScreen();
+    document.getElementById('pause-timer-btn').style.display = 'inline-flex';
     document.getElementById('resume-timer-btn').style.display = 'none';
-    showPlayHintIfNeeded();
     updateSpyGuessButtonVisibility();
+    updateLocationsCaptions();
+    syncRestartRoundButtonWidth();
     renderLocationsGrid();
 }
 
@@ -398,6 +532,74 @@ function hideVotePanel() {
     exitRoundInterruptMode();
 }
 
+function populateFinalVoteSelect(players, selectedTarget) {
+    const select = document.getElementById('final-vote-select');
+    if (!select) return;
+
+    const others = (players || []).filter((n) => n !== playerName);
+    select.innerHTML = '';
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = 'Choose a player…';
+    placeholder.disabled = true;
+    placeholder.selected = !selectedTarget;
+    select.appendChild(placeholder);
+
+    others.forEach((name) => {
+        const opt = document.createElement('option');
+        opt.value = name;
+        opt.textContent = name;
+        select.appendChild(opt);
+    });
+
+    if (selectedTarget && others.includes(selectedTarget)) {
+        select.value = selectedTarget;
+        placeholder.selected = false;
+    }
+}
+
+function updateFinalVoteStatus(data) {
+    const status = document.getElementById('final-vote-status');
+    if (!status) return;
+
+    const total = data.players_count || playersListCache.length;
+    const count = data.ballots_count ?? Object.keys(data.votes || {}).length;
+    const myVote = (data.votes && playerName && data.votes[playerName])
+        || document.getElementById('final-vote-select')?.value
+        || '';
+
+    if (myVote) {
+        status.textContent =
+            `You voted for ${myVote}. ${count} of ${total} players have voted. `
+            + 'You can change your vote until everyone has voted.';
+        return;
+    }
+
+    status.textContent = `${count} of ${total} players have voted.`;
+}
+
+function showFinalVotePanel(data) {
+    completeSessionRestore();
+    ensurePlayingScreenVisible();
+    enterRoundInterruptMode();
+    document.getElementById('round-timer').textContent = '0:00';
+    document.getElementById('final-vote-panel').style.display = 'block';
+    document.getElementById('spy-play-interrupt-zone').style.display = 'block';
+
+    const locationsScroll = document.querySelector('.spy-play-scroll');
+    if (locationsScroll) locationsScroll.style.display = 'none';
+    document.getElementById('spy-round-info').style.display = 'none';
+
+    const votes = data.votes || {};
+    const myVote = playerName ? votes[playerName] : null;
+    populateFinalVoteSelect(data.players || playersListCache, myVote);
+    updateFinalVoteStatus({
+        votes,
+        ballots_count: data.ballots_count,
+        players_count: data.players_count,
+    });
+}
+
 function markVoteSubmitted(message) {
     myVoteSubmitted = true;
     document.getElementById('vote-panel').classList.add('vote-panel-voted');
@@ -410,12 +612,6 @@ function emitSettingsUpdate() {
         room_code: currentRoomCode,
         ...collectSettingsPayload(),
     });
-}
-
-function locationImageUrl(path) {
-    if (!path) return '';
-    if (path.startsWith('http') || path.startsWith('/')) return path;
-    return LOCATIONS_IMAGE_BASE + path;
 }
 
 // ---------- Load locations from API ----------
@@ -452,17 +648,12 @@ function renderLocationsGrid() {
         label.className = 'location-card-label';
         label.textContent = loc.name;
 
-        const img = document.createElement('img');
-        img.className = 'location-card-img';
-        img.src = locationImageUrl(loc.image);
-        img.alt = loc.name;
-
         const mark = document.createElement('div');
         mark.className = 'location-card-mark';
         mark.textContent = '✕';
+        mark.setAttribute('aria-hidden', 'true');
 
         card.appendChild(label);
-        card.appendChild(img);
         card.appendChild(mark);
 
         if (spyGuessActive && myRole && myRole.is_spy) {
@@ -515,16 +706,25 @@ function resetRoleReadyUI() {
 
 function updateRoleWaitingMessage(data) {
     const msg = document.getElementById('role-waiting-message');
+    const btn = document.getElementById('role-continue-btn');
+
+    if (data.ready && playerName && data.ready.includes(playerName)) {
+        myRoleReadySubmitted = true;
+        if (btn) btn.disabled = true;
+    }
+
     if (data.waiting_for) {
         msg.textContent = `Waiting for ${data.waiting_for} to click OK`;
         msg.style.display = 'block';
         return;
     }
+
     if (myRoleReadySubmitted) {
         msg.textContent = 'Waiting for other players...';
         msg.style.display = 'block';
         return;
     }
+
     msg.textContent = '';
     msg.style.display = 'none';
 }
@@ -555,26 +755,11 @@ function showRoleScreen(rolePayload) {
 
     hideAllScreens();
     document.getElementById('screen-role').style.display = 'flex';
-}
-
-function isPlayHintDismissed() {
-    return localStorage.getItem(PLAY_HINT_DISMISSED_KEY) === '1';
-}
-
-function showPlayHintIfNeeded() {
-    const banner = document.getElementById('spy-hint-banner');
-    if (!banner) return;
-    banner.style.display = isPlayHintDismissed() ? 'none' : 'flex';
-}
-
-function dismissPlayHint() {
-    localStorage.setItem(PLAY_HINT_DISMISSED_KEY, '1');
-    document.getElementById('spy-hint-banner').style.display = 'none';
+    updateNewRoundButtonVisibility();
 }
 
 async function enterGameScreen() {
     await loadLocationsJson();
-    // Do not tear down vote/guess UI if enter_game races with an interrupt event.
     const inInterrupt = roundInterruptActive;
     if (!inInterrupt) {
         exitRoundInterruptMode();
@@ -585,21 +770,40 @@ async function enterGameScreen() {
     document.getElementById('screen-locations').style.display = 'flex';
     if (!inInterrupt) {
         showPlayingUI();
-        showPlayHintIfNeeded();
     }
+    updateNewRoundButtonVisibility();
 }
 
 function applyRoleToLocationsScreen() {
     if (!myRole) return;
 
+    const roundInfo = document.getElementById('spy-round-info');
+    const locationLine = document.getElementById('info-location');
+    const locationName = document.getElementById('info-location-name');
+    const spyRoleLine = document.getElementById('info-spy-role');
+    const roleEl = document.getElementById('info-role');
+
     if (myRole.is_spy) {
-        document.getElementById('spy-round-info').style.display = 'none';
-        updateSpyGuessButtonVisibility();
+        roundInfo.style.display = 'block';
+        locationLine.style.display = 'none';
+        roleEl.style.display = 'none';
+        if (spyRoleLine) spyRoleLine.style.display = 'block';
     } else {
-        document.getElementById('spy-round-info').style.display = 'block';
-        document.getElementById('info-location').textContent = myRole.location || '';
-        document.getElementById('info-role').textContent = myRole.role_label ? `Role: ${myRole.role_label}` : '';
+        roundInfo.style.display = 'block';
+        if (spyRoleLine) spyRoleLine.style.display = 'none';
+        const location = myRole.location || '';
+        locationName.textContent = location;
+        locationLine.style.display = location ? 'block' : 'none';
+        if (myRole.role_label) {
+            roleEl.textContent = `Role: ${myRole.role_label}`;
+            roleEl.style.display = 'block';
+        } else {
+            roleEl.textContent = '';
+            roleEl.style.display = 'none';
+        }
     }
+    updateSpyGuessButtonVisibility();
+    updateLocationsCaptions();
 }
 
 function hidePlayingUI() {
@@ -706,15 +910,35 @@ function showRoundResult(data) {
 
     document.getElementById('next-round-btn').style.display = 'block';
     document.getElementById('back-to-main-btn').style.display = 'block';
+    updateNewRoundButtonVisibility();
 }
 
 // Invite link in URL - verify room exists before showing the name screen.
+restorePlayerSessionFromUrl();
 const roomFromUrl = getRoomFromUrl();
 if (roomFromUrl) {
     currentRoomCode = roomFromUrl;
     socket.emit('spy_check_room', { room_code: roomFromUrl });
 }
-document.getElementById('screen-name').style.display = 'flex';
+if (sessionRestorePending) {
+    hideAllScreens();
+} else if (!playerName) {
+    document.getElementById('screen-name').style.display = 'flex';
+}
+
+if (sessionRestorePending && socket.connected) {
+    syncPlayerSession();
+}
+
+setTimeout(() => {
+    if (!sessionRestorePending) return;
+    if (document.getElementById('screen-error').style.display === 'flex') return;
+    if (document.getElementById('screen-waiting').style.display === 'flex') return;
+    if (document.getElementById('screen-role').style.display === 'flex') return;
+    if (document.getElementById('screen-locations').style.display === 'flex') return;
+    completeSessionRestore();
+    document.getElementById('screen-name').style.display = 'flex';
+}, 4000);
 
 loadLocationsJson().catch((err) => console.error('Failed to load locations:', err));
 
@@ -737,16 +961,16 @@ function restoreScreenForPhase(phase) {
     if (phase === 'role_reveal') {
         hideAllScreens();
         document.getElementById('screen-role').style.display = 'flex';
-        return;
-    }
-    if (phase === 'playing') {
+        updateNewRoundButtonVisibility();
+    } else if (phase === 'playing') {
         enterGameScreen();
-        return;
-    }
-    if (phase === 'results') {
+    } else if (phase === 'results') {
         hideAllScreens();
         document.getElementById('screen-locations').style.display = 'flex';
+    } else if (phase === 'final_vote') {
+        hideAllScreens();
     }
+    completeSessionRestoreIfPending();
 }
 
 socket.on('spy_room_created', (data) => {
@@ -755,6 +979,7 @@ socket.on('spy_room_created', (data) => {
     window.history.pushState({}, '', `/spy-in-ithaca/${currentRoomCode}`);
     updateInviteLinkUI();
     updatePlayersEverywhere(data.players);
+    savePlayerSession();
     if (data.reconnect || data.mid_game) {
         restoreScreenForPhase(data.phase);
         return;
@@ -776,7 +1001,7 @@ socket.on('spy_state_update', (data) => {
     }
     if (data.players) updatePlayersEverywhere(data.players);
 
-    const interruptPhases = ['vote_nominate', 'voting', 'spy_guess'];
+    const interruptPhases = ['vote_nominate', 'voting', 'spy_guess', 'final_vote'];
     if (!interruptPhases.includes(data.phase)) {
         restoreScreenForPhase(data.phase);
     }
@@ -788,11 +1013,25 @@ socket.on('spy_state_update', (data) => {
         showVotePanel(data.vote_accused, data.vote_initiator, spyCount);
     } else if (data.phase === 'spy_guess' && data.guess_spy) {
         showSpyGuessPanel(data.guess_spy);
+    } else if (data.phase === 'final_vote') {
+        completeSessionRestore();
+        showFinalVotePanel({
+            players: data.players,
+            votes: data.final_votes || {},
+            ballots_count: data.final_vote_ballots_count,
+            players_count: data.final_vote_players_count,
+        });
     }
 });
 
 socket.on('spy_role_assigned', (data) => {
     myRole = data;
+    if (data.show_screen === false) {
+        if (document.getElementById('screen-locations').style.display === 'flex') {
+            applyRoleToLocationsScreen();
+        }
+        return;
+    }
     showRoleScreen(data);
 });
 
@@ -823,7 +1062,7 @@ socket.on('spy_timer_paused', () => {
 });
 
 socket.on('spy_timer_resumed', () => {
-    document.getElementById('pause-timer-btn').style.display = 'inline-block';
+    document.getElementById('pause-timer-btn').style.display = 'inline-flex';
     document.getElementById('resume-timer-btn').style.display = 'none';
 });
 
@@ -846,6 +1085,23 @@ socket.on('spy_vote_started', (data) => {
         document.getElementById('round-timer').textContent = formatTime(data.time_left);
     }
     showVotePanel(data.accused, data.initiator, data.spy_count);
+});
+
+socket.on('spy_final_vote_started', (data) => {
+    if (data.players) {
+        updatePlayersEverywhere(data.players);
+    }
+    showFinalVotePanel(data);
+});
+
+socket.on('spy_final_vote_cast', (data) => {
+    updateFinalVoteStatus(data);
+    if (data.voter === playerName && data.target) {
+        const select = document.getElementById('final-vote-select');
+        if (select && select.value !== data.target) {
+            select.value = data.target;
+        }
+    }
 });
 
 socket.on('spy_vote_cast', (data) => {
@@ -877,6 +1133,7 @@ socket.on('spy_round_result', (data) => {
 });
 
 socket.on('spy_next_round_ready', () => {
+    resetClientRoundState();
     openLobbyScreen();
 });
 
@@ -885,6 +1142,8 @@ socket.on('error', (data) => {
 
     // If the room doesn't exist, show the error screen
     if (message === 'Room not found') {
+        completeSessionRestore();
+        clearPlayerSession();
         hideAllScreens();
         document.getElementById('screen-error').style.display = 'flex';
         return;
@@ -917,7 +1176,9 @@ socket.on('error', (data) => {
 });
 
 socket.on('spy_room_exists', () => {
-    document.getElementById('screen-name').style.display = 'flex';
+    if (!playerName && !sessionRestorePending) {
+        document.getElementById('screen-name').style.display = 'flex';
+    }
 });
 
 // ---------- Button handlers (send to server) ----------
@@ -942,6 +1203,7 @@ document.getElementById('submit_name_btn').addEventListener('click', () => {
 
     if (roomToJoin) {
         currentRoomCode = roomToJoin;
+        savePlayerSession();
         socket.emit('spy_join_room', {
             room_code: currentRoomCode,
             name: playerName,
@@ -1003,6 +1265,12 @@ document.getElementById('copy-invite-btn').addEventListener('click', async () =>
     }, 2000);
 });
 
+document.getElementById('final-vote-select').addEventListener('change', (event) => {
+    const target = event.target.value;
+    if (!target || !currentRoomCode || !playerName) return;
+    emitWithPlayer('spy_cast_final_vote', { target });
+});
+
 document.getElementById('pause-timer-btn').addEventListener('click', () => {
     const text = document.getElementById('round-timer').textContent;
     const parts = text.split(':');
@@ -1013,8 +1281,6 @@ document.getElementById('pause-timer-btn').addEventListener('click', () => {
 document.getElementById('resume-timer-btn').addEventListener('click', () => {
     emitWithPlayer('spy_resume_timer');
 });
-
-document.getElementById('spy-hint-dismiss-btn').addEventListener('click', dismissPlayHint);
 
 document.getElementById('spy-guess-btn').addEventListener('click', () => {
     if (!currentRoomCode || !playerName || roundInterruptActive) return;
@@ -1061,6 +1327,38 @@ document.getElementById('next-round-btn').addEventListener('click', () => {
     emitWithPlayer('spy_next_round');
 });
 
+const newRoundDialog = document.getElementById('new-round-dialog');
+
+function showNewRoundDialog() {
+    if (!newRoundDialog) return;
+    newRoundDialog.classList.add('is-open');
+    newRoundDialog.setAttribute('aria-hidden', 'false');
+}
+
+function hideNewRoundDialog() {
+    if (!newRoundDialog) return;
+    newRoundDialog.classList.remove('is-open');
+    newRoundDialog.setAttribute('aria-hidden', 'true');
+}
+
+document.getElementById('new-round-btn').addEventListener('click', () => {
+    if (!currentRoomCode || !playerName) return;
+    showNewRoundDialog();
+});
+
+document.getElementById('new-round-cancel-btn').addEventListener('click', hideNewRoundDialog);
+document.getElementById('new-round-dialog-backdrop').addEventListener('click', hideNewRoundDialog);
+document.getElementById('new-round-confirm-btn').addEventListener('click', () => {
+    hideNewRoundDialog();
+    emitWithPlayer('spy_new_round');
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    const dialog = document.getElementById('new-round-dialog');
+    if (dialog?.classList.contains('is-open')) hideNewRoundDialog();
+});
+
 document.getElementById('back-to-main-btn').addEventListener('click', () => {
     window.location.href = '/';
 });
@@ -1078,3 +1376,5 @@ themeToggle.addEventListener('click', () => {
     document.body.classList.toggle('light-theme');
     localStorage.setItem('theme', document.body.classList.contains('light-theme') ? 'light' : 'dark');
 });
+
+window.addEventListener('resize', syncRestartRoundButtonWidth);

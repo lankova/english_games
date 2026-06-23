@@ -232,7 +232,7 @@ Game links are styled as buttons for better UX. */
     margin-top: auto;
     }
 
-/* Cat images — fixed size (index, rules); do not shrink with plate width */
+/* Cat images - fixed size (index, rules); do not shrink with plate width */
 .cat-image {
     display: block;
     width: var(--cat-hero-size);
@@ -330,7 +330,7 @@ Game links are styled as buttons for better UX. */
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
 }
 
-/* "Who'll help us guess words?" — античный стиль */
+/* "Who'll help us guess words?" */
 .explainer-prompt {
     font-family: 'Georgia', serif;
     font-size: 1.1rem;
@@ -367,7 +367,35 @@ Game links are styled as buttons for better UX. */
     color: var(--text-secondary);
 }
 
-/* Waiting room cat — same idea: fixed width when image is added */
+.rules-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.25rem;
+}
+
+.rules-card:has(.rules-scroll) .btn,
+.rules-card:has(.rules-scroll) .cat-image {
+    flex-shrink: 0;
+}
+
+.main-card.rules-card:has(.rules-scroll) {
+    padding-bottom: 1rem;
+}
+
+.rules-card:has(.rules-scroll) .cat-image {
+    width: 170px;
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+/* Waiting room cat - same idea: fixed width when image is added */
 .waiting-cat {
     display: block;
     width: var(--cat-waiting-size);
@@ -387,6 +415,28 @@ Game links are styled as buttons for better UX. */
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
+}
+
+#screen-error {
+    width: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 1.25rem;
+}
+
+#screen-error h1 {
+    margin: 0;
+    font-size: 1.8rem;
+    font-weight: 700;
+}
+
+#screen-error .ok-button,
+#screen-error #goHomeBtn {
+    margin: 0;
 }
 
 #screen-name input[type="text"] {
@@ -787,6 +837,19 @@ Game links are styled as buttons for better UX. */
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
+.exit-btn--confirm {
+    background: var(--accent);
+    color: #1a1a1a;
+    border: 2px solid var(--accent);
+}
+
+.exit-btn--confirm:hover {
+    background: #e8944d;
+    border-color: #e8944d;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(244, 162, 97, 0.35);
+}
+
 @keyframes exit-fade-in {
     from { opacity: 0; }
     to { opacity: 1; }
@@ -843,7 +906,7 @@ Game links are styled as buttons for better UX. */
     width: auto;
 }
 
-/* Scroll edges — darker, uneven look */
+/* Scroll edges - darker, uneven look */
 #score-table::before {
     content: '';
     position: absolute;
@@ -910,6 +973,7 @@ Game links are styled as buttons for better UX. */
     color: #3a2a10;
     text-align: center;
     letter-spacing: 0.5px;
+    white-space: pre-line;
     background: linear-gradient(135deg, rgba(232, 220, 200, 0.7), rgba(212, 192, 152, 0.5));
     border-left: 3px solid #8b7b5a;
     border-right: 3px solid #8b7b5a;
@@ -1037,9 +1101,15 @@ Game links are styled as buttons for better UX. */
 
 .page-game #screen-name,
 .page-game #screen-waiting,
-.page-game #screen-game,
-.page-game #screen-locations.spy-play-screen {
+.page-game #screen-game {
     padding-top: 1.5rem;
+}
+
+.page-game #screen-locations.spy-play-screen {
+    padding-top: 0.65rem;
+    flex: 1 1 auto;
+    min-height: 0;
+    align-self: stretch;
 }
 
 .page-game .main-card:has(#screen-locations.spy-play-screen[style*="flex"]) {
@@ -1108,9 +1178,9 @@ Game links are styled as buttons for better UX. */
     }
 }
 
-/* ============================================================
-   Spy in Ithaca — Game 2 Styles
-   ============================================================ */
+/* ===============================
+   Spy in Ithaca - Game 2 Styles
+   =============================== */
 
 /* ---------- Invite link ---------- */
 .invite-link-container {
@@ -1188,7 +1258,7 @@ Game links are styled as buttons for better UX. */
     transition: transform 0.1s ease;
 }
 
-/* Checkmark — hidden by default */
+/* Checkmark - hidden by default */
 .copy-check {
     display: none;
     font-size: 1.1rem;
@@ -1441,6 +1511,51 @@ Game links are styled as buttons for better UX. */
     color: #b3ffc8;
 }
 
+body.light-theme .role-reveal-card.role-card-civilian {
+    background: linear-gradient(165deg, #faf8f4 0%, #edf4ee 55%, #e3ede5 100%);
+    border: 2px solid #6d9f7e;
+    color: #1f3d2c;
+    box-shadow: 0 6px 24px rgba(90, 138, 106, 0.14);
+}
+
+body.light-theme .role-reveal-card.role-card-civilian .role-reveal-line {
+    color: #3a5244;
+}
+
+body.light-theme .role-reveal-card.role-card-civilian .role-reveal-line strong {
+    color: #1a3324;
+    font-weight: 700;
+}
+
+body.light-theme .role-reveal-card.role-card-civilian .role-reveal-location-line strong {
+    color: #b85c24;
+}
+
+body.light-theme .role-reveal-card.role-card-civilian .role-reveal-hint {
+    color: #5f6f64;
+}
+
+body.light-theme .role-reveal-card.role-card-spy {
+    background: linear-gradient(165deg, #faf9f7 0%, #f3f1ed 55%, #ebe8e3 100%);
+    border: 2px solid #a8a29c;
+    color: #3a342e;
+    box-shadow: 0 6px 24px rgba(60, 50, 40, 0.08);
+}
+
+body.light-theme .role-reveal-card.role-card-spy .role-spy-title {
+    color: #4a4038;
+    font-weight: 700;
+}
+
+body.light-theme .role-waiting-message {
+    color: #b85c24;
+    font-weight: 500;
+}
+
+body.light-theme .role-reveal-screen .ok-button {
+    box-shadow: 0 4px 14px rgba(90, 138, 106, 0.22);
+}
+
 .role-badge {
     font-size: 0.8rem;
     font-weight: 700;
@@ -1490,12 +1605,76 @@ Game links are styled as buttons for better UX. */
     transform: scale(0.96);
 }
 
+.spy-new-round-btn {
+    flex-shrink: 0;
+    align-self: center;
+    margin-top: 0.35rem;
+    padding: 0.12rem 0.45rem;
+    font-size: 0.68rem;
+    font-weight: 400;
+    line-height: 1.2;
+    white-space: nowrap;
+    color: var(--text-muted);
+    background: transparent;
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    cursor: pointer;
+    opacity: 0.4;
+}
+
+.spy-new-round-btn:hover {
+    opacity: 0.65;
+    color: var(--text-secondary);
+    border-color: var(--text-muted);
+}
+
+.spy-new-round-btn--play {
+    box-sizing: border-box;
+    text-align: center;
+}
+
+.page-game .main-card:has(#screen-role[style*="flex"]) {
+    justify-content: flex-start;
+}
+
+.page-game .main-card:has(#screen-role[style*="flex"]) #screen-role {
+    flex: 1 1 auto;
+    min-height: 0;
+    justify-content: center;
+}
+
+.page-game .main-card:has(#screen-role[style*="flex"]) .spy-new-round-btn {
+    margin-top: auto;
+    margin-bottom: 0;
+    padding: 0.1rem 0.35rem;
+    font-size: 0.62rem;
+    font-weight: 400;
+    opacity: 0.2;
+    border-color: rgba(255, 255, 255, 0.12);
+    color: var(--text-muted);
+}
+
+body.light-theme .page-game .main-card:has(#screen-role[style*="flex"]) .spy-new-round-btn {
+    border-color: rgba(0, 0, 0, 0.1);
+}
+
+.page-game .main-card:has(#screen-role[style*="flex"]) .spy-new-round-btn:hover {
+    opacity: 0.42;
+    border-color: rgba(255, 255, 255, 0.22);
+}
+
+body.light-theme .page-game .main-card:has(#screen-role[style*="flex"]) .spy-new-round-btn:hover {
+    border-color: rgba(0, 0, 0, 0.16);
+}
+
 /* ---------- Spy play screen layout ---------- */
 .spy-play-screen {
+    --spy-gap: 0.65rem;
     width: 100%;
     max-width: 720px;
-    max-height: min(88dvh, 920px);
+    flex: 1 1 auto;
     min-height: 0;
+    display: flex;
     flex-direction: column;
     align-items: stretch;
     text-align: center;
@@ -1517,22 +1696,52 @@ Game links are styled as buttons for better UX. */
 .spy-play-top {
     flex-shrink: 0;
     width: 100%;
-    padding-bottom: 0.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spy-gap);
+    padding-bottom: 0;
 }
 
 .spy-timer-row {
     display: flex;
+    justify-content: center;
+    width: 100%;
+    margin: 0;
+}
+
+.spy-timer-stack {
+    display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.35rem;
-    margin-bottom: 0.5rem;
+    gap: calc(var(--spy-gap) * 0.75);
+    max-width: 100%;
+}
+
+.spy-timer-center {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    padding-right: calc(2.5rem + 0.65rem);
+}
+
+.spy-timer-row .guessing-timer.spy-timer {
+    width: auto;
+    margin: 0;
+    padding: 0.3rem 1rem;
+    font-size: 2.5rem;
+    text-align: center;
 }
 
 .spy-timer-controls {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%);
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 0.4rem;
-    justify-content: center;
+    align-items: center;
 }
 
 .spy-play-interrupt-zone {
@@ -1541,19 +1750,48 @@ Game links are styled as buttons for better UX. */
 }
 
 .spy-play-interrupt-zone .vote-panel {
-    margin: 0.35rem auto 0.5rem;
+    margin: var(--spy-gap) auto 0;
 }
 
 .spy-play-scroll {
     flex: 1 1 auto;
-    min-height: 120px;
-    max-height: 50dvh;
-    overflow-y: auto;
-    overflow-x: hidden;
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
     width: 100%;
-    margin: 0.25rem 0 0.5rem;
-    padding: 0.15rem 0.1rem;
-    -webkit-overflow-scrolling: touch;
+    margin: var(--spy-gap) 0 0;
+    padding: 0;
+}
+
+.locations-panel {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 0.38rem;
+}
+
+.locations-list-caption {
+    flex-shrink: 0;
+    box-sizing: border-box;
+    width: 100%;
+    margin: 0;
+    padding: 0.45rem 0.65rem;
+    font-size: clamp(0.72rem, 1.9vw, 0.85rem);
+    font-weight: 600;
+    line-height: 1.35;
+    color: var(--text);
+    text-align: center;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--card-border);
+}
+
+.locations-panel .locations-grid {
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 .spy-timer-block {
@@ -1575,7 +1813,6 @@ Game links are styled as buttons for better UX. */
     background: var(--timer-bg);
     border-radius: 12px;
     padding: 0.3rem 1rem;
-    margin: 0.3rem 0;
 }
 
 .timer-control-btn {
@@ -1593,12 +1830,38 @@ Game links are styled as buttons for better UX. */
     background: var(--timer-bg);
 }
 
+.timer-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+}
+
+.timer-icon-btn svg {
+    width: 1.15rem;
+    height: 1.15rem;
+    fill: currentColor;
+}
+
 /* Round info */
 .spy-round-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: calc(var(--spy-gap) * 0.5);
     text-align: center;
 }
 
 .info-location {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0;
+}
+
+.info-location-name {
     font-size: 1.3rem;
     font-weight: 700;
     color: var(--accent);
@@ -1607,49 +1870,7 @@ Game links are styled as buttons for better UX. */
 .info-role {
     font-size: 0.95rem;
     color: var(--text-secondary);
-    margin-top: 0.2rem;
-}
-
-/* Spy play hint banner */
-.spy-hint-banner {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 0.5rem;
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    background: rgba(255, 255, 255, 0.06);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 8px;
-    padding: 0.5rem 0.65rem 0.5rem 1rem;
-    max-width: 420px;
-}
-
-.spy-hint-banner-text {
-    flex: 1;
     margin: 0;
-    line-height: 1.35;
-}
-
-.spy-hint-dismiss-btn {
-    flex-shrink: 0;
-    background: none;
-    border: none;
-    color: var(--text-secondary);
-    font-size: 1.35rem;
-    line-height: 1;
-    cursor: pointer;
-    padding: 0 0.15rem;
-    opacity: 0.75;
-}
-
-.spy-hint-dismiss-btn:hover {
-    opacity: 1;
-}
-
-body.light-theme .spy-hint-banner {
-    background: rgba(0, 0, 0, 0.04);
-    border-color: rgba(0, 0, 0, 0.1);
 }
 
 .players-wrap-game {
@@ -1659,7 +1880,7 @@ body.light-theme .spy-hint-banner {
     gap: 0.4rem;
     justify-content: center;
     align-items: center;
-    margin-top: 0.35rem;
+    margin: 0;
 }
 
 .players-wrap {
@@ -1692,63 +1913,69 @@ body.light-theme .spy-hint-banner {
 
 .locations-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.65rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: repeat(7, minmax(0, 1fr));
+    gap: 0.38rem 0.45rem;
     width: 100%;
+    height: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 .location-card {
     position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 100%;
-    padding: 0.35rem;
+    min-height: 0;
+    padding: 0.2rem 0.35rem;
     border-radius: 10px;
-    background: var(--card-bg);
+    background: rgba(255, 255, 255, 0.04);
     border: 1px solid var(--card-border);
     text-align: center;
     cursor: pointer;
-    transition: border-color 0.2s ease, opacity 0.2s ease;
+    transition: border-color 0.2s ease, background 0.2s ease, opacity 0.2s ease;
     user-select: none;
 }
 
 .location-card:hover {
     border-color: var(--accent);
+    background: rgba(244, 162, 97, 0.08);
 }
 
 .location-card.is-marked {
-    opacity: 0.35;
-    border-color: rgba(255, 0, 0, 0.3);
+    opacity: 0.42;
+    border-color: rgba(220, 80, 70, 0.45);
+    background: rgba(220, 80, 70, 0.08);
 }
 
 .location-card-label {
-    font-size: 0.75rem;
+    font-size: clamp(0.62rem, 1.9vw, 0.76rem);
     font-weight: 600;
     color: var(--text);
-    margin-bottom: 0.25rem;
+    margin: 0;
+    line-height: 1.15;
     word-break: break-word;
-}
-
-.location-card-img {
-    display: block;
-    width: 100%;
-    aspect-ratio: 4 / 3;
-    object-fit: cover;
-    border-radius: 6px;
+    hyphens: auto;
 }
 
 .location-card-mark {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-size: 2rem;
-    color: red;
-    font-weight: 700;
+    inset: 0;
     display: none;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    color: #e74c3c;
+    font-weight: 700;
     pointer-events: none;
+    border-radius: inherit;
+    background: rgba(0, 0, 0, 0.12);
 }
 
 .location-card.is-marked .location-card-mark {
-    display: block;
+    display: flex;
 }
 
 .questions-block {
@@ -1758,7 +1985,7 @@ body.light-theme .spy-hint-banner {
     color: var(--text-secondary);
     font-style: italic;
     min-height: 2.5rem;
-    margin: 0.35rem 0 0.5rem;
+    margin: var(--spy-gap) 0 0;
     padding: 0.5rem 0.65rem;
     border-radius: 10px;
     background: var(--card-bg);
@@ -1773,17 +2000,82 @@ body.light-theme .spy-hint-banner {
     gap: 0.5rem;
     justify-content: center;
     width: 100%;
-    margin-top: 0.25rem;
-    padding-bottom: 0.25rem;
+    margin: var(--spy-gap) 0 0;
+    padding: 0;
+}
+
+.spy-round-actions #vote-btn {
+    min-width: 12rem;
+    min-height: 3.15rem;
+    padding: 0.9rem 1.75rem;
+    font-size: 1.08rem;
+    font-weight: 700;
+    border-radius: 12px;
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #1a1a1a;
+    box-shadow: 0 4px 14px rgba(244, 162, 97, 0.28);
+}
+
+.spy-round-actions #vote-btn:hover {
+    background: #e8944d;
+    border-color: #e8944d;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(244, 162, 97, 0.38);
+}
+
+/* Spy: guess is primary (full width), vote is a quiet secondary action below */
+.spy-round-actions.spy-round-actions--spy {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.spy-round-actions.spy-round-actions--spy #spy-guess-btn,
+.spy-round-actions.spy-round-actions--spy #vote-btn {
+    width: 100%;
+    min-width: 0;
+    flex: 0 0 auto;
+    min-height: 3.15rem;
+    padding: 0.9rem 1.75rem;
+    border-radius: 12px;
+}
+
+.spy-round-actions.spy-round-actions--spy #spy-guess-btn {
+    font-size: 1.08rem;
+    font-weight: 700;
+    box-shadow: 0 4px 14px rgba(244, 162, 97, 0.28);
+}
+
+.spy-round-actions.spy-round-actions--spy #vote-btn {
+    font-size: 1.02rem;
+    font-weight: 600;
+    background: var(--card-bg);
+    border: 2px solid var(--card-border);
+    color: var(--text-muted);
+    box-shadow: none;
+    transform: none;
+}
+
+.spy-round-actions.spy-round-actions--spy #vote-btn:hover {
+    background: var(--timer-bg);
+    border-color: color-mix(in srgb, var(--accent) 38%, var(--card-border));
+    color: var(--text-secondary);
+    transform: none;
+    box-shadow: none;
 }
 
 @media (max-width: 520px) {
-    .spy-play-scroll {
-        max-height: 45dvh;
+    .locations-grid {
+        gap: 0.28rem 0.32rem;
+    }
+
+    .location-card {
+        padding: 0.15rem 0.25rem;
+        border-radius: 8px;
     }
 
     .location-card-label {
-        font-size: 0.68rem;
+        font-size: clamp(0.58rem, 2.8vw, 0.68rem);
     }
 }
 
@@ -1840,11 +2132,13 @@ body.light-theme .spy-hint-banner {
 .location-card.location-card-guessable {
     cursor: pointer;
     border-color: rgba(255, 179, 179, 0.55);
-    box-shadow: 0 0 0 2px rgba(255, 179, 179, 0.2);
+    background: rgba(255, 179, 179, 0.07);
+    box-shadow: inset 0 0 0 1px rgba(255, 179, 179, 0.15);
 }
 
 .location-card.location-card-guessable:hover {
     border-color: #ffb3b3;
+    background: rgba(255, 179, 179, 0.14);
 }
 
 .spy-action-btn-accent:hover {
@@ -1925,9 +2219,13 @@ body.light-theme .spy-hint-banner {
     top: 0.08rem;
     width: 0.28rem;
     height: 0.55rem;
-    border: solid var(--text-muted);
+    border: solid var(--input-text);
     border-width: 0 2px 2px 0;
     transform: rotate(45deg);
+}
+
+body.light-theme .setup-form label.setup-checkbox input[type="checkbox"]:checked::after {
+    border-color: var(--text-muted);
 }
 
 .vote-panel {
@@ -1974,9 +2272,43 @@ body.light-theme .spy-hint-banner {
     line-height: 1.45;
 }
 
+.final-vote-panel {
+    text-align: left;
+}
+
+.final-vote-title {
+    margin: 0 0 0.75rem;
+    font-size: 1.15rem;
+    font-weight: 700;
+    text-align: center;
+    color: var(--text);
+}
+
+.final-vote-steps {
+    margin: 0 0 1rem 1.15rem;
+    padding: 0;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    font-size: 0.92rem;
+}
+
+.final-vote-steps li + li {
+    margin-top: 0.35rem;
+}
+
+.final-vote-prompt {
+    margin: 0 0 0.5rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.final-vote-picker {
+    margin-bottom: 0.25rem;
+}
+
 .vote-cancel-banner {
     max-width: 400px;
-    margin: 0.75rem auto;
+    margin: var(--spy-gap, 0.65rem) auto 0;
     padding: 0.65rem 1rem;
     border-radius: 8px;
     background: rgba(244, 162, 97, 0.15);

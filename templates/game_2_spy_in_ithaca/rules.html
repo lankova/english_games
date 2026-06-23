@@ -2,33 +2,68 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <!-- Ensures proper display on mobile devices -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>English Games</title>
-    <!-- Favicon (website icon) -->
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
-    <!-- Styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='global.css') }}">
 </head>
 
 <body>
     <button id="theme-toggle" class="theme-toggle" title="Switch theme">🌓</button>
 
-    <div class="main-card rules-card"> <!-- Light card with rounded corners - purely decorative -->
-        <h1 class="rules-title">Rules</h1>
-        <p class="howtoplay">
-        Rules will be added later<br>
-       </p>
+    <div class="main-card rules-card">
+
+        <h1 class="rules-title">How to Play</h1>
+
+        <div class="rules-scroll">
+            <p class="howtoplay">
+                Welcome to <strong>Spy in Ithaca</strong> — a game of questions, lies, and one secret location.
+            </p>
+
+            <p class="howtoplay">
+            Most players are civilians. They all know the <strong>same secret location</strong>. One player is the spy — they don't know the location, and their job is to figure it out without getting caught.
+            </p>
+
+            <p class="howtoplay">
+                Everyone can see <strong>a list of possible locations</strong> on the screen. The real location is one of them. Civilians already know which one it is, the spy has to figure it out.
+            </p>
+
+            <p class="howtoplay">
+                Everyone asks each other questions — <em>"Is this place loud?"</em>, <em>"Do you come here alone?"</em>, <em>"What do you see around you?"</em>. The civilians try to spot the spy without giving away the location. The spy tries to blend in while secretly piecing together where they might be.
+            </p>
+
+            <p class="howtoplay">
+                Each round has a time limit — usually <strong>9 minutes</strong>. You can call a vote <strong>at any time</strong> during the round. If you think someone is the spy, say so and start a vote. The vote only passes if it's <strong>unanimous</strong> — every single player (except the suspect) must agree. If even one person says no, the discussion continues. The suspect themselves does not vote.
+            </p>
+
+            <p class="howtoplay">
+                When time runs out, you have one final discussion and a final vote. No more questions after the timer stops.
+            </p>
+
+            <h2 class="rules-title" style="font-size: 1.4rem;">How the Spy Wins</h2>
+
+            <p class="howtoplay">
+                The spy wins if:
+            </p>
+            <ul class="howtoplay" style="text-align: left; margin: 0 auto 1rem; max-width: 32rem;">
+                <li>They correctly <strong>guess the secret location</strong> before time runs out, or</li>
+                <li>The group <strong>fails to vote them out</strong> — either during the round or after time is up.</li>
+            </ul>
+
+        <h2 class="rules-title" style="font-size: 1.4rem;">Game with Two Spies</h2>
+
+            <p class="howtoplay">
+                If you play with <strong>two spies</strong>, the civilians only need to catch <strong>one of them</strong> to win. A successful vote against either spy means the civilians win the round — and both spies lose together.
+            </p>
+        </div>
 
         <a href="{{ url_for('spy_in_ithaca_game') }}" class="btn">Create new game</a>
 
-        <!-- Decorative cat image with rules - adds a friendly touch -->
         <img class="cat-image" src="{{ url_for('static', filename='common/images/orange_cat_rules.png') }}" alt="Orange cat">
     </div>
 </body>
 
 <script>
-    // Theme toggle
     const themeToggle = document.getElementById('theme-toggle');
     const savedTheme = localStorage.getItem('theme');
 

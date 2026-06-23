@@ -2,12 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <!-- Ensures proper display on mobile devices -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Spy in Ithaca</title>
-    <!-- Favicon (website icon) -->
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
-    <!-- Styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='global.css') }}">
 </head>
 
@@ -72,9 +69,8 @@
                 <label>
                     Location set
                     <select id="setting-location-set">
-                        <option value="myths">Myths</option>
-                        <option value="odyssey">Odyssey</option>
                         <option value="modern_world">Modern world</option>
+                        <option value="myths">Myths</option>
                     </select>
                 </label>
             </form>
@@ -90,16 +86,6 @@
         <div id="screen-role" class="role-reveal-screen" style="display: none;">
             <div id="role-spy" class="role-reveal-card role-card-spy" style="display: none;">
                 <h2 class="role-spy-title">🕵️ You're the spy!</h2>
-                <div class="role-spy-body">
-                    <p>Your mission: stay hidden and figure out where you are.</p>
-                    <p class="role-spy-wins-title">You win if:</p>
-                    <ul class="role-spy-wins-list">
-                        <li>You correctly guess the secret location by tapping a picture, OR</li>
-                        <li>Time runs out within <strong id="role-spy-duration">9</strong> minutes before the group catches you, OR</li>
-                        <li>The group votes but not everyone agrees — if even one player disagrees, you win.</li>
-                    </ul>
-                    <p class="role-spy-footer">Listen carefully. Blend in. 🎭</p>
-                </div>
             </div>
 
             <div id="role-civilian" class="role-reveal-card role-card-civilian" style="display: none;">
@@ -120,33 +106,49 @@
         <div id="screen-locations" class="spy-play-screen" style="display: none;">
             <div class="spy-play-game-ui">
                 <div class="spy-play-top">
+                    <div id="players-wrap-game" class="players-wrap players-wrap-game"></div>
+
                     <div class="spy-timer-row">
-                        <p class="guessing-timer-label">Time left</p>
-                        <div id="round-timer" class="guessing-timer spy-timer">9:00</div>
-                        <div class="spy-timer-controls">
-                            <button id="pause-timer-btn" class="timer-control-btn">Pause</button>
-                            <button id="resume-timer-btn" class="timer-control-btn" style="display: none;">Resume</button>
+                        <div class="spy-timer-stack">
+                            <div class="spy-timer-center">
+                                <div id="round-timer" class="guessing-timer spy-timer">9:00</div>
+                                <div class="spy-timer-controls">
+                                <button
+                                    id="pause-timer-btn"
+                                    class="timer-control-btn timer-icon-btn"
+                                    type="button"
+                                    aria-label="Pause"
+                                >
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <rect x="6" y="5" width="4" height="14" rx="1"></rect>
+                                        <rect x="14" y="5" width="4" height="14" rx="1"></rect>
+                                    </svg>
+                                </button>
+                                <button
+                                    id="resume-timer-btn"
+                                    class="timer-control-btn timer-icon-btn"
+                                    type="button"
+                                    aria-label="Resume"
+                                    style="display: none;"
+                                >
+                                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                                        <path d="M8 5v14l11-7L8 5z"></path>
+                                    </svg>
+                                </button>
+                            </div>
+                            </div>
+                            <div id="spy-round-info" class="spy-round-info" style="display: none;">
+                                <p id="info-location" class="info-location" style="display: none;">
+                                    Our secret location: <span id="info-location-name" class="info-location-name"></span>
+                                </p>
+                                <p id="info-spy-role" class="info-location" style="display: none;">
+                                    Your role: <span class="info-location-name">Spy</span>
+                                </p>
+                                <p id="info-role" class="info-role"></p>
+                            </div>
                         </div>
                     </div>
 
-                    <div id="spy-round-info" class="spy-round-info">
-                        <p id="info-location" class="info-location"></p>
-                        <p id="info-role" class="info-role"></p>
-                    </div>
-
-                    <div id="spy-hint-banner" class="spy-hint-banner" style="display: none;">
-                        <p class="spy-hint-banner-text">
-                            Tap a location to mark it (only you see this). Tap a name to cross it out.
-                        </p>
-                        <button
-                            id="spy-hint-dismiss-btn"
-                            type="button"
-                            class="spy-hint-dismiss-btn"
-                            aria-label="Dismiss hint"
-                        >×</button>
-                    </div>
-
-                    <div id="players-wrap-game" class="players-wrap players-wrap-game"></div>
                 </div>
 
                 <!-- Vote / spy-guess overlays (shown instead of normal play actions) -->
@@ -197,28 +199,51 @@
 
                 <p id="vote-cancel-banner" class="vote-cancel-banner" style="display: none;"></p>
 
+                <div id="final-vote-panel" class="vote-panel final-vote-panel" style="display: none;">
+                    <h2 class="final-vote-title">Time's up! Discuss, then vote.</h2>
+                    <ol class="final-vote-steps">
+                        <li>Talk openly — who do you think is the spy?</li>
+                        <li>Vote for one player (must be unanimous)</li>
+                        <li>If everyone agrees — that player is accused</li>
+                        <li>If not — the spy escapes!</li>
+                    </ol>
+                    <p class="final-vote-prompt">You can vote here:</p>
+                    <div class="final-vote-picker">
+                        <select id="final-vote-select" class="vote-nominate-select"></select>
+                    </div>
+                    <p id="final-vote-status" class="vote-status"></p>
+                </div>
+
                 <div id="spy-guess-panel" class="vote-panel spy-guess-panel" style="display: none;">
                     <p id="spy-guess-wait-view" class="spy-guess-wait" style="display: none;">
                         <span id="spy-guess-spy-name"></span> is the spy.
                         <span id="spy-guess-spy-name-2"></span> is guessing the location.
                     </p>
                     <p id="spy-guess-prompt-view" class="spy-guess-prompt" style="display: none;">
-                        Guess the place (tap the picture).
+                        Guess the place (tap the name).
                     </p>
                 </div>
                 </div>
 
                 <div class="spy-play-scroll">
-                    <div id="locations-grid" class="locations-grid"></div>
+                    <div class="locations-panel">
+                        <p id="spy-locations-caption" class="locations-list-caption" style="display: none;">
+                            Study the list below. One of these is the secret location.
+                        </p>
+                        <p id="civilian-locations-caption" class="locations-list-caption" style="display: none;">
+                            All locations
+                        </p>
+                        <div id="locations-grid" class="locations-grid"></div>
+                    </div>
                 </div>
 
                 <p id="questions-block" class="questions-block"></p>
 
                 <div id="playing-actions" class="spy-round-actions">
-                    <button id="vote-btn" class="spy-action-btn" type="button">Let's vote</button>
                     <button id="spy-guess-btn" class="spy-action-btn spy-action-btn-accent" style="display: none;">
                         I want to guess the location
                     </button>
+                    <button id="vote-btn" class="spy-action-btn" type="button">Let's vote</button>
                 </div>
             </div>
 
@@ -246,6 +271,27 @@
             <button id="goHomeBtn" class="ok-button">Go to the main page</button>
         </div>
 
+        <button id="new-round-btn" class="spy-new-round-btn" type="button" style="display: none;">
+            Restart round
+        </button>
+
+    </div>
+
+    <div id="new-round-dialog" class="exit-dialog" aria-hidden="true">
+        <div class="exit-dialog-backdrop" id="new-round-dialog-backdrop"></div>
+        <div class="exit-dialog-panel" role="dialog" aria-labelledby="new-round-dialog-message">
+            <p id="new-round-dialog-message" class="exit-dialog-message">
+                Are you sure you want to start a new round?
+            </p>
+            <div class="exit-dialog-buttons">
+                <button type="button" id="new-round-cancel-btn" class="exit-btn exit-btn--stay">
+                    No, keep playing
+                </button>
+                <button type="button" id="new-round-confirm-btn" class="exit-btn exit-btn--confirm">
+                    Yes, start a new round
+                </button>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>

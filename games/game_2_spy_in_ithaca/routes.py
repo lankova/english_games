@@ -4,7 +4,6 @@ import os
 
 
 def register_routes(app):
-    """Register all routes for Game 2."""
 
     @app.route("/spy-in-ithaca/rules")
     def game2_rules():
@@ -24,13 +23,10 @@ def register_routes(app):
 
         with open(os.path.join(data_dir, "myths.json"), "r", encoding="utf-8") as f:
             myths = json.load(f)
-        with open(os.path.join(data_dir, "odyssey.json"), "r", encoding="utf-8") as f:
-            odyssey = json.load(f)
         with open(os.path.join(data_dir, "modern_world.json"), "r", encoding="utf-8") as f:
             modern_world = json.load(f)
 
         return jsonify({
             "myths": myths,
-            "odyssey": odyssey,
             "modern_world": modern_world,
         })

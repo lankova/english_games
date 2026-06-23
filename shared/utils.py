@@ -5,6 +5,6 @@ import string
 
 
 def generate_room_code():
-    """Generate random 4-character room code (letters + digits)"""
+    """Generate random room code"""
     characters = string.ascii_uppercase + string.digits
     return ''.join(random.choices(characters, k=4))

@@ -4,9 +4,9 @@ import pytest
 from app import app, rooms_game2, socketio
 
 
-# ========================
+# =========
 # FIXTURES
-# ========================
+# =========
 
 @pytest.fixture(autouse=True)
 def clear_spy_rooms():
@@ -106,16 +106,16 @@ def _spy_names(room_code):
     return [n for n, role in room['roles'].items() if role['is_spy']]
 
 
-# ========================
+# ================
 # ROOM MANAGEMENT
-# ========================
+# ================
 
 @allure.epic("Spy in Ithaca")
 @allure.feature("Room Management")
 class TestSpyRoomManagement:
 
     @allure.story("Create a new game room")
-    @allure.title("Host creates room - should return room code and default settings")
+    @allure.title("Host creates room")
     @allure.severity(allure.severity_level.CRITICAL)
     def test_create_room(self, socket_client):
         socket_client.emit('spy_create_room', {'name': 'Alice'})
@@ -156,7 +156,7 @@ class TestSpyRoomManagement:
         assert 'Room not found' in received[0]['args'][0]['message']
 
     @allure.story("Rejoin with same name")
-    @allure.title("Same name reconnects - should refresh session, not duplicate player")
+    @allure.title("Same name reconnects")
     @allure.severity(allure.severity_level.NORMAL)
     def test_rejoin_same_name(self, socket_client):
         room_code = _create_room(socket_client)
@@ -207,14 +207,62 @@ class TestSpyRoomManagement:
             except RuntimeError:
                 pass
 
+    @allure.story("Sync session after refresh")
+    @allure.title("spy_sync_session restores role reveal state")
+    @allure.severity(allure.severity_level.CRITICAL)
+    def test_sync_session_during_role_reveal(self, guest_client_factory):
+        host = socketio.test_client(app)
+        bob = guest_client_factory()
+        carol = guest_client_factory()
+        room_code = _create_room(host)
+        _join(bob, room_code, 'Bob')
+        _join(carol, room_code, 'Carol')
+        host.get_received()
+        bob.get_received()
+        carol.get_received()
+
+        _start_role_reveal([host, bob, carol], room_code)
+        host.emit('spy_role_ready', {'room_code': room_code, 'player_name': 'Alice'})
+        time.sleep(0.1)
+        host.get_received()
+
+        refreshed = socketio.test_client(app)
+        try:
+            refreshed.emit('spy_sync_session', {
+                'room_code': room_code,
+                'player_name': 'Alice',
+            })
+            time.sleep(0.1)
+            received = refreshed.get_received()
+            names = _event_names_from_list(received)
+
+            assert 'spy_role_assigned' in names
+            assert 'spy_role_ready_update' in names
+            assert 'spy_state_update' in names
+
+            role = next(e for e in received if e['name'] == 'spy_role_assigned')['args'][0]
+            assert 'location' in role or role.get('is_spy')
+
+            ready = next(e for e in received if e['name'] == 'spy_role_ready_update')['args'][0]
+            assert 'Alice' in ready['ready']
+
+            state = next(e for e in received if e['name'] == 'spy_state_update')['args'][0]
+            assert state['phase'] == 'role_reveal'
+            assert rooms_game2[room_code]['players']['Alice']['sid'] is not None
+        finally:
+            try:
+                refreshed.disconnect()
+            except RuntimeError:
+                pass
+
 
 def _event_names_from_list(received):
     return [e['name'] for e in received]
 
 
-# ========================
+# ============
 # LOBBY RULES
-# ========================
+# ============
 
 @allure.epic("Spy in Ithaca")
 @allure.feature("Lobby Rules")
@@ -279,9 +327,9 @@ class TestSpyLobbyRules:
         host.disconnect()
 
 
-# ========================
+# ===========
 # GAME FLOW
-# ========================
+# ===========
 
 @allure.epic("Spy in Ithaca")
 @allure.feature("Game Flow")
@@ -396,9 +444,9 @@ class TestSpyGameFlow:
         host.disconnect()
 
 
-# ========================
+# =======
 # VOTING
-# ========================
+# =======
 
 @allure.epic("Spy in Ithaca")
 @allure.feature("Voting")
@@ -653,9 +701,213 @@ class TestSpyVoting:
                     pass
 
 
-# ========================
+# =======================
+# FINAL VOTE (TIME'S UP)
+# =======================
+
+@allure.epic("Spy in Ithaca")
+@allure.feature("Final Vote")
+class TestSpyFinalVote:
+
+    def _start_final_vote(self, room_code):
+        room = rooms_game2[room_code]
+        room['phase'] = 'final_vote'
+        room['votes'] = {}
+        room['votes_open'] = True
+        room['vote_accused'] = None
+        room['vote_initiator'] = None
+        room['timer_time_left'] = 0
+
+    @allure.story("Unanimous final vote")
+    @allure.title("Everyone votes for the same player, civilians win if they are a spy")
+    @allure.severity(allure.severity_level.CRITICAL)
+    def test_final_vote_unanimous_finds_spy(self, guest_client_factory):
+        host = socketio.test_client(app)
+        bob = guest_client_factory()
+        carol = guest_client_factory()
+        room_code = _create_room(host)
+        _join(bob, room_code, 'Bob')
+        _join(carol, room_code, 'Carol')
+        clients = [host, bob, carol]
+        names = ['Alice', 'Bob', 'Carol']
+        _enter_playing(clients, room_code, names)
+        for client in clients:
+            client.get_received()
+
+        self._start_final_vote(room_code)
+        spy = _spy_names(room_code)[0]
+        decoy = next(n for n in names if n != spy)
+
+        for client, name in zip(clients, names):
+            target = decoy if name == spy else spy
+            client.emit('spy_cast_final_vote', {
+                'room_code': room_code,
+                'player_name': name,
+                'target': target,
+            })
+
+        time.sleep(0.15)
+        for client in clients:
+            results = _events(client, 'spy_round_result')
+            assert results, f'{client} should receive round result'
+            assert results[0]['args'][0]['result']['winner'] == 'civilians'
+
+        host.disconnect()
+
+    @allure.story("Split final vote lets the spy escape")
+    @allure.title("Players disagree and spy escapes. Spies win")
+    @allure.severity(allure.severity_level.CRITICAL)
+    def test_final_vote_not_unanimous_spies_escape(self, guest_client_factory):
+        host = socketio.test_client(app)
+        bob = guest_client_factory()
+        carol = guest_client_factory()
+        room_code = _create_room(host)
+        _join(bob, room_code, 'Bob')
+        _join(carol, room_code, 'Carol')
+        clients = [host, bob, carol]
+        names = ['Alice', 'Bob', 'Carol']
+        _enter_playing(clients, room_code, names)
+        for client in clients:
+            client.get_received()
+
+        self._start_final_vote(room_code)
+        votes = {'Alice': 'Bob', 'Bob': 'Carol', 'Carol': 'Alice'}
+
+        for client, name in zip(clients, names):
+            client.emit('spy_cast_final_vote', {
+                'room_code': room_code,
+                'player_name': name,
+                'target': votes[name],
+            })
+
+        time.sleep(0.15)
+        for client in clients:
+            results = _events(client, 'spy_round_result')
+            assert results
+            result = results[0]['args'][0]['result']
+            assert result['winner'] == 'spies'
+            assert 'escapes' in result['message'].lower()
+
+        host.disconnect()
+
+    @allure.story("Change final vote")
+    @allure.title("Player can change vote before everyone has voted")
+    @allure.severity(allure.severity_level.NORMAL)
+    def test_final_vote_can_be_changed(self, guest_client_factory):
+        host = socketio.test_client(app)
+        bob = guest_client_factory()
+        carol = guest_client_factory()
+        room_code = _create_room(host)
+        _join(bob, room_code, 'Bob')
+        _join(carol, room_code, 'Carol')
+        clients = [host, bob, carol]
+        names = ['Alice', 'Bob', 'Carol']
+        _enter_playing(clients, room_code, names)
+        for client in clients:
+            client.get_received()
+
+        self._start_final_vote(room_code)
+        spy = _spy_names(room_code)[0]
+        voter = next(n for n in names if n != spy)
+        voter_client = next(c for c, n in zip(clients, names) if n == voter)
+        wrong_target = next(n for n in names if n != spy and n != voter)
+        decoy = next(n for n in names if n != spy)
+
+        voter_client.emit('spy_cast_final_vote', {
+            'room_code': room_code,
+            'player_name': voter,
+            'target': wrong_target,
+        })
+        voter_client.emit('spy_cast_final_vote', {
+            'room_code': room_code,
+            'player_name': voter,
+            'target': spy,
+        })
+        assert rooms_game2[room_code]['votes'][voter] == spy
+
+        for client, name in zip(clients, names):
+            if name == voter:
+                continue
+            target = decoy if name == spy else spy
+            client.emit('spy_cast_final_vote', {
+                'room_code': room_code,
+                'player_name': name,
+                'target': target,
+            })
+
+        time.sleep(0.15)
+        assert rooms_game2[room_code]['phase'] == 'results'
+        results = _events(host, 'spy_round_result')
+        assert results
+        assert results[0]['args'][0]['result']['winner'] == 'civilians'
+        host.disconnect()
+
+    @allure.story("Self-vote rejected")
+    @allure.title("Final vote cannot target yourself")
+    @allure.severity(allure.severity_level.CRITICAL)
+    def test_final_vote_rejects_self(self, guest_client_factory):
+        host = socketio.test_client(app)
+        bob = guest_client_factory()
+        carol = guest_client_factory()
+        room_code = _create_room(host)
+        _join(bob, room_code, 'Bob')
+        _join(carol, room_code, 'Carol')
+        _enter_playing([host, bob, carol], room_code, ['Alice', 'Bob', 'Carol'])
+        host.get_received()
+
+        self._start_final_vote(room_code)
+        host.emit('spy_cast_final_vote', {
+            'room_code': room_code,
+            'player_name': 'Alice',
+            'target': 'Alice',
+        })
+        received = host.get_received()
+        errors = [e for e in received if e['name'] == 'error']
+        assert errors
+        assert 'yourself' in errors[0]['args'][0]['message'].lower()
+        assert 'Alice' not in rooms_game2[room_code]['votes']
+        host.disconnect()
+
+
+@allure.epic("Spy in Ithaca")
+@allure.feature("New Round")
+class TestSpyNewRound:
+
+    @allure.story("Abort mid-game")
+    @allure.title("New round returns to lobby without changing scores")
+    @allure.severity(allure.severity_level.NORMAL)
+    def test_new_round_preserves_scores_mid_game(self, guest_client_factory):
+        host = socketio.test_client(app)
+        bob = guest_client_factory()
+        carol = guest_client_factory()
+        room_code = _create_room(host)
+        _join(bob, room_code, 'Bob')
+        _join(carol, room_code, 'Carol')
+        _enter_playing([host, bob, carol], room_code, ['Alice', 'Bob', 'Carol'])
+        host.get_received()
+
+        room = rooms_game2[room_code]
+        room['players']['Alice']['score'] = 2
+        room['players']['Bob']['score'] = 1
+
+        host.emit('spy_new_round', {
+            'room_code': room_code,
+            'player_name': 'Alice',
+        })
+        time.sleep(0.1)
+        received = host.get_received()
+
+        assert 'spy_next_round_ready' in [e['name'] for e in received]
+        assert room['phase'] == 'waiting'
+        assert room['players']['Alice']['score'] == 2
+        assert room['players']['Bob']['score'] == 1
+        assert room['roles'] == {}
+        host.disconnect()
+
+
+# ============
 # HTTP ROUTES
-# ========================
+# ============
 
 @allure.epic("Spy in Ithaca")
 @allure.feature("HTTP Routes")
@@ -688,5 +940,5 @@ class TestSpyRoutes:
         assert response.status_code == 200
         data = response.get_json()
         assert 'myths' in data
-        assert 'odyssey' in data
         assert 'modern_world' in data
+        assert 'odyssey' not in data

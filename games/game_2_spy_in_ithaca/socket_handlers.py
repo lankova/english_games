@@ -12,13 +12,13 @@ save_room_to_db = None
 generate_room_code = None
 location_sets = {}
 
-# Questions for any location set (myths, odyssey, modern world)
+# Questions for any location set (myths, modern world)
 QUESTION_IDEAS_ANY_SET = [
     "Apart from me, who was the last person you spoke to?",
     "Are you planning to have fun tonight?",
     "Are you sitting or standing?",
     "Can you bring a child here?",
-    "Do you have any animals in this location?",
+    "Are there any animals in this location?",
     "Do you think this place is dangerous?",
     "Do you hear any music here?",
     "How loud can it be here?",
@@ -55,7 +55,7 @@ QUESTION_IDEAS_ANY_SET = [
     "What's the weirdest thing about this place?",
 ]
 
-# Extra questions only for myths & odyssey
+# Extra questions only for myths
 QUESTION_IDEAS_MYTHS_ODYSSEY = [
     "Is there a god or goddess nearby?",
     "Are there any monsters around?",
@@ -101,10 +101,12 @@ QUESTION_IDEAS_MODERN_WORLD = [
 
 QUESTION_ROTATE_SEC = 120
 
+LOCATION_SET_KEYS = ("myths", "modern_world")
+
 
 def _questions_for_location_set(set_key):
     deck = list(QUESTION_IDEAS_ANY_SET)
-    if set_key in ("myths", "odyssey"):
+    if set_key == "myths":
         deck.extend(QUESTION_IDEAS_MYTHS_ODYSSEY)
     elif set_key == "modern_world":
         deck.extend(QUESTION_IDEAS_MODERN_WORLD)
@@ -112,7 +114,6 @@ def _questions_for_location_set(set_key):
 
 
 def _load_json(filepath):
-    """Load a JSON file from disk."""
     with open(filepath, "r", encoding="utf-8") as f:
         return json.load(f)
 
@@ -128,7 +129,6 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
     data_dir = os.path.join(os.path.dirname(__file__), "data")
     location_sets = {
         "myths": _load_json(os.path.join(data_dir, "myths.json")),
-        "odyssey": _load_json(os.path.join(data_dir, "odyssey.json")),
         "modern_world": _load_json(os.path.join(data_dir, "modern_world.json")),
     }
 
@@ -177,7 +177,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         return player
 
     _MID_ROUND_PHASES = frozenset({
-        "role_reveal", "playing", "vote_nominate", "voting", "spy_guess",
+        "role_reveal", "playing", "vote_nominate", "voting", "spy_guess", "final_vote",
     })
 
     def _assign_late_civilian_role(room, name):
@@ -209,20 +209,19 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         return private
 
     def _catch_up_player(room_code, name):
-        # Late join or reconnect: replay private state and any in-progress interrupt.
+        # Late join or reconnect
         room = _room(room_code)
         if not room or name not in room.get("players", {}):
             return
 
         role_payload = _role_payload_for_player(room, name)
-        if role_payload:
-            emit("spy_role_assigned", role_payload, to=request.sid)
-
         phase = room.get("phase")
+
         if phase == "role_reveal":
+            ready, waiting_for = _role_ready_waiting_for(room)
             emit("spy_role_ready_update", {
-                "ready": list(room.get("role_ready", [])),
-                "waiting_for": None,
+                "ready": ready,
+                "waiting_for": waiting_for,
             }, to=request.sid)
         elif phase == "playing":
             emit("spy_enter_game", {}, to=request.sid)
@@ -261,6 +260,15 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
                 "spy": room.get("guess_spy"),
                 "time_left": room.get("timer_time_left"),
             }, to=request.sid)
+        elif phase == "final_vote":
+            players = _players_list(room)
+            votes = dict(room.get("votes", {}))
+            emit("spy_final_vote_started", {
+                "players": players,
+                "votes": votes,
+                "ballots_count": len(votes),
+                "players_count": len(players),
+            }, to=request.sid)
         elif phase == "results" and room.get("last_result"):
             emit("spy_round_result", {
                 "result": room["last_result"],
@@ -268,7 +276,12 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
                 "secret_location": room.get("secret_location"),
             }, to=request.sid)
 
-        emit("spy_state_update", {
+        if role_payload:
+            role_emit = dict(role_payload)
+            role_emit["show_screen"] = phase == "role_reveal"
+            emit("spy_role_assigned", role_emit, to=request.sid)
+
+        state_payload = {
             "phase": room["phase"],
             "players": _players_list(room),
             "settings": _public_settings(room),
@@ -279,7 +292,13 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
             "vote_accused": room.get("vote_accused"),
             "vote_initiator": room.get("vote_initiator"),
             "guess_spy": room.get("guess_spy"),
-        }, to=request.sid)
+        }
+        if room.get("phase") == "final_vote":
+            votes = dict(room.get("votes", {}))
+            state_payload["final_votes"] = votes
+            state_payload["final_vote_ballots_count"] = len(votes)
+            state_payload["final_vote_players_count"] = len(_players_list(room))
+        emit("spy_state_update", state_payload, to=request.sid)
 
     def _emit_to_all_players(room_code, room, event, payload):
         # Room broadcast plus direct sid emit (covers stale room membership after reconnect).
@@ -298,7 +317,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
     def _pick_location_set(set_key):
         block = location_sets.get(set_key)
         if not block:
-            raise ValueError(f"Unknown location set: {set_key}")
+            block = location_sets["modern_world"]
         return block["locations"]
 
     def _min_players_to_start(settings):
@@ -337,7 +356,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
             minutes = int(data["round_duration_sec"])
             s["round_duration_sec"] = min(max(minutes, 6), 15) * 60
         if "location_set" in data:
-            if data["location_set"] in ("myths", "odyssey", "modern_world"):
+            if data["location_set"] in LOCATION_SET_KEYS:
                 s["location_set"] = data["location_set"]
 
     def _broadcast_public_state(room_code, event="spy_state_update"):
@@ -356,6 +375,11 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
             "vote_initiator": room.get("vote_initiator"),
             "guess_spy": room.get("guess_spy"),
         }
+        if room.get("phase") == "final_vote":
+            votes = dict(room.get("votes", {}))
+            payload["final_votes"] = votes
+            payload["final_vote_ballots_count"] = len(votes)
+            payload["final_vote_players_count"] = len(_players_list(room))
         socketio.emit(event, payload, to=room_code)
 
     def _stop_timer(room):
@@ -494,16 +518,14 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
                 )
             spy = spies[0] if spies else "?"
             return (
-                f"{accused} was not a spy. {spy} was the spy. "
-                f"{spy} wins this round!"
+                f"{accused} wasn't a spy.\n\n{spy} was the spy — and wins this round!"
             )
 
         if accused_is_spy:
             return f"You found the spy — {accused}"
         spy = spies[0] if spies else "?"
         return (
-            f"{accused} was not the spy. {spy} was the spy. "
-            f"{spy} wins this round!"
+            f"{accused} wasn't the spy.\n\n{spy} was the spy — and wins this round!"
         )
 
     def _finish_unanimous_vote(room_code, accused):
@@ -553,6 +575,79 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         save_room_to_db(room_code, rooms)
         _emit_to_all_players(room_code, room, "spy_vote_cancelled", {"message": message})
         _resume_round_timer(room_code)
+
+    def _begin_final_vote(room_code):
+        room = _room(room_code)
+        if not room or room.get("phase") != "playing":
+            return
+        players = _players_list(room)
+        room["phase"] = "final_vote"
+        room["votes"] = {}
+        room["vote_ballots"] = {}
+        room["votes_open"] = True
+        room["vote_accused"] = None
+        room["vote_initiator"] = None
+        room["timer_time_left"] = 0
+        _stop_timer(room)
+        save_room_to_db(room_code, rooms)
+        payload = {
+            "players": players,
+            "votes": {},
+            "ballots_count": 0,
+            "players_count": len(players),
+        }
+        _emit_to_all_players(room_code, room, "spy_final_vote_started", payload)
+        socketio.emit("spy_timer_update", {"time_left": 0}, to=room_code)
+        _broadcast_public_state(room_code)
+
+    def _finish_final_vote_spies_escape(room_code):
+        room = _room(room_code)
+        if not room:
+            return
+        room["phase"] = "results"
+        room["votes_open"] = False
+        room["votes"] = {}
+        room["vote_ballots"] = {}
+        room["vote_accused"] = None
+        room["vote_initiator"] = None
+        _stop_timer(room)
+        room["last_result"] = {
+            "reason": "final_vote_failed",
+            "winner": "spies",
+            "message": "The spy escapes! Spies win this round!",
+        }
+        _award_round(room, winner_side="spies")
+        save_room_to_db(room_code, rooms)
+        socketio.emit("spy_round_result", {
+            "result": room["last_result"],
+            "scoreboard": _scoreboard(room),
+            "secret_location": room["secret_location"],
+        }, to=room_code)
+
+    def _evaluate_final_vote(room_code):
+        room = _room(room_code)
+        if not room or room["phase"] != "final_vote":
+            return
+        players = _players_list(room)
+        votes = room.get("votes", {})
+        if len(votes) < len(players):
+            return
+
+        for voter, target in votes.items():
+            if voter == target:
+                return
+
+        accused = None
+        for candidate in players:
+            others = [p for p in players if p != candidate]
+            if all(votes.get(p) == candidate for p in others):
+                accused = candidate
+                break
+
+        if accused:
+            _finish_unanimous_vote(room_code, accused)
+        else:
+            _finish_final_vote_spies_escape(room_code)
 
     def _evaluate_voting(room_code):
         # Every eligible voter must vote Yes on the same accused, or the vote is cancelled.
@@ -768,10 +863,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         socketio.emit("spy_enter_game", {}, to=room_code)
         _broadcast_public_state(room_code)
 
-    def _emit_role_ready_update(room_code):
-        room = _room(room_code)
-        if not room:
-            return
+    def _role_ready_waiting_for(room):
         players = _players_list(room)
         ready = list(room.get("role_ready", []))
         waiting_for = None
@@ -779,6 +871,13 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
             remaining = [p for p in players if p not in ready]
             if len(remaining) == 1:
                 waiting_for = remaining[0]
+        return ready, waiting_for
+
+    def _emit_role_ready_update(room_code):
+        room = _room(room_code)
+        if not room:
+            return
+        ready, waiting_for = _role_ready_waiting_for(room)
         socketio.emit("spy_role_ready_update", {
             "ready": ready,
             "waiting_for": waiting_for,
@@ -815,25 +914,13 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
                 room["timer_time_left"] = left - 1
 
             if room_code in rooms and room.get("phase") == "playing":
-                room["phase"] = "results"
-                _stop_timer(room)
-                room["last_result"] = {
-                    "reason": "timeout",
-                    "winner": "spies",
-                    "message": "Time is up. Spies win this round.",
-                }
-                _award_round(room, winner_side="spies")
-                socketio.emit("spy_round_result", {
-                    "result": room["last_result"],
-                    "scoreboard": _scoreboard(room),
-                    "secret_location": room["secret_location"],
-                }, to=room_code)
+                _begin_final_vote(room_code)
 
         thread = threading.Thread(target=timer_task, daemon=True)
         room["timer_thread"] = thread
         thread.start()
 
-    # ---------- Socket events ----------
+    # ------ Socket events ------
 
     @socketio.on("spy_check_room")
     def handle_spy_check_room(data):
@@ -904,7 +991,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
                     "message": "This name is already taken. Please choose another.",
                 })
                 return
-            # Same name reconnecting - refresh sid, do not add a duplicate player.
+            # Same name reconnecting - update sid, do not add a duplicate player.
             room["players"][name]["sid"] = request.sid
             join_room(room_code)
             save_room_to_db(room_code, rooms)
@@ -1132,7 +1219,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
             "initiator": initiator,
             "time_left": room.get("timer_time_left"),
         }
-        # Emit before save so a DB error does not leave clients without the vote UI.
+
         _emit_to_all_players(room_code, room, "spy_vote_nomination_started", nominate_payload)
         _emit_to_all_players(room_code, room, "spy_timer_paused", {
             "time_left": room.get("timer_time_left"),
@@ -1244,6 +1331,34 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         }, to=room_code)
         _evaluate_voting(room_code)
 
+    @socketio.on("spy_cast_final_vote")
+    def handle_spy_cast_final_vote(data):
+        room_code = data.get("room_code")
+        target = (data.get("target") or "").strip()
+        room = _room(room_code)
+        if not room or room["phase"] != "final_vote" or not room.get("votes_open"):
+            return
+        voter = _resolve_player(room, room_code, data)
+        if not voter or not target:
+            return
+        if target not in room["players"]:
+            return
+        if voter == target:
+            emit("error", {"message": "You cannot vote for yourself"})
+            return
+
+        room.setdefault("votes", {})[voter] = target
+        save_room_to_db(room_code, rooms)
+        players = _players_list(room)
+        socketio.emit("spy_final_vote_cast", {
+            "voter": voter,
+            "target": target,
+            "votes": dict(room["votes"]),
+            "ballots_count": len(room["votes"]),
+            "players_count": len(players),
+        }, to=room_code)
+        _evaluate_final_vote(room_code)
+
     @socketio.on("spy_start_guess")
     def handle_spy_start_guess(data):
         room_code = data.get("room_code")
@@ -1312,14 +1427,11 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
             "secret_location": room["secret_location"],
         }, to=room_code)
 
-    @socketio.on("spy_next_round")
-    def handle_spy_next_round(data):
-        room_code = data.get("room_code")
+    def _return_to_waiting_lobby(room_code):
         room = _room(room_code)
         if not room:
-            return
-        if room["phase"] != "results":
-            return
+            return False
+        _stop_timer(room)
         room["phase"] = "waiting"
         room["game_started"] = False
         room["votes"] = {}
@@ -1330,10 +1442,47 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         room["spy_guess_active"] = False
         room["guess_spy"] = None
         room["secret_location"] = None
+        room.pop("secret_location_image", None)
         room["roles"] = {}
         room["role_ready"] = []
         room.pop("resolved_spy_count", None)
+        room.pop("last_result", None)
+        room["player_questions"] = {}
+        room["timer_paused"] = False
+        room["timer_time_left"] = None
+        room.pop("question_deck", None)
+        room.pop("question_deck_pos", None)
         save_room_to_db(room_code, rooms)
+        return True
+
+    @socketio.on("spy_new_round")
+    def handle_spy_new_round(data):
+        room_code = data.get("room_code")
+        room = _room(room_code)
+        if not room:
+            emit("error", {"message": "Room not found"})
+            return
+        if not _resolve_player(room, room_code, data):
+            emit("error", {"message": "Player not found"})
+            return
+        phase = room.get("phase")
+        if phase == "waiting" and not room.get("game_started"):
+            return
+        if not _return_to_waiting_lobby(room_code):
+            return
+        socketio.emit("spy_next_round_ready", {}, to=room_code)
+        _broadcast_public_state(room_code)
+
+    @socketio.on("spy_next_round")
+    def handle_spy_next_round(data):
+        room_code = data.get("room_code")
+        room = _room(room_code)
+        if not room:
+            return
+        if room["phase"] != "results":
+            return
+        if not _return_to_waiting_lobby(room_code):
+            return
         socketio.emit("spy_next_round_ready", {}, to=room_code)
         _broadcast_public_state(room_code)
 
@@ -1351,6 +1500,16 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
             _remove_player_from_room(room_code, player_name)
             save_room_to_db(room_code, rooms)
             _on_player_left_during_voting(room_code, player_name)
+            return
+        if phase == "final_vote":
+            votes = room.get("votes", {})
+            if player_name in votes:
+                del votes[player_name]
+            _remove_player_from_room(room_code, player_name)
+            save_room_to_db(room_code, rooms)
+            room = _room(room_code)
+            if room and room.get("players"):
+                _evaluate_final_vote(room_code)
             return
         if phase == "vote_nominate" and player_name == room.get("vote_initiator"):
             _cancel_voting(room_code, f"{player_name} left. Vote cancelled.")
@@ -1387,6 +1546,15 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
                 _remove_player_from_room(room_code, name)
                 save_room_to_db(room_code, rooms)
                 _on_player_left_during_voting(room_code, name)
+            elif phase == "final_vote":
+                votes = room.get("votes", {})
+                if name in votes:
+                    del votes[name]
+                _remove_player_from_room(room_code, name)
+                save_room_to_db(room_code, rooms)
+                room = _room(room_code)
+                if room and room.get("players"):
+                    _evaluate_final_vote(room_code)
             elif phase == "vote_nominate" and name == room.get("vote_initiator"):
                 _cancel_voting(room_code, f"{name} left. Vote cancelled.")
                 room["players"][name]["sid"] = None

@@ -2,7 +2,6 @@ from flask import render_template
 import os
 
 def register_routes(app):
-    """Register all routes for Game 1."""
 
     @app.route('/game1/rules')
     def game1_rules():

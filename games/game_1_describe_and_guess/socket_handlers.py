@@ -390,7 +390,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         if room_code not in rooms:
             emit('error', {'message': 'Room not found'})
         else:
-            # Room exists — confirm it so the player can proceed
+            # Room exists - confirm it so the player can proceed
             emit('room_exists', {'exists': True})
 
     @socketio.on('all_cards_done')

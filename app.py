@@ -33,7 +33,7 @@ register_routes_g2(app)
 from games.game_2_spy_in_ithaca.socket_handlers import register_handlers as register_handlers_g2
 register_handlers_g2(socketio, rooms_game2, save_room_to_db, generate_room_code)
 
-# -------------------- RUN SERVER --------------------
+# ------ RUN SERVER ------
 
 if __name__ == '__main__':
     # Use environment variable to control debug mode: True locally, False in production
