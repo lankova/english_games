@@ -217,3 +217,4 @@ data/rooms.json # Dynamic data (rooms) that changes during the game
 # System files
 .DS_Store
 Thumbs.db
+game.db

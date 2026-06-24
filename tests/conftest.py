@@ -18,6 +18,11 @@ def pytest_configure(config):
         "live: tests against a running server (set LIVE_TESTS_OK=1)",
     )
 
+@pytest.fixture(autouse=True)
+def setup_test_db():
+    from shared.database import init_db
+    init_db()
+    yield
 
 @pytest.fixture
 def test_app():
