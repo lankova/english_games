@@ -11,10 +11,10 @@ You can play the games at http://lankova.tech/
 
 ## 🎲 Games in this project
 
-| Game                   | Description                                           |
-|------------------------|-------------------------------------------------------|
+| Game                 | Description                                           |
+|----------------------|-------------------------------------------------------|
 | **Describe and Guess** | A word-guessing adventure. 2+ players                 |
-| ***Spy in Ithaca***    | Ask questions. Trust no one. Find the spy. 3+ players |
+| **Spy in Ithaca**    | Ask questions. Trust no one. Find the spy. 3+ players |
 
 ---
 
