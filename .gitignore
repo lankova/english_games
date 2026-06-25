@@ -218,3 +218,4 @@ data/rooms.json # Dynamic data (rooms) that changes during the game
 .DS_Store
 Thumbs.db
 game.db
+pre-push-check.sh

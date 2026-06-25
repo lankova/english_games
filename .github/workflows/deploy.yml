@@ -28,18 +28,25 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      - name: Setup SSH and known hosts
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          # owner read+write, group/others no access
+          chmod 600 ~/.ssh/id_rsa
+          echo "${{ secrets.SSH_HOST_KEY }}" > ~/.ssh/known_hosts
+
       - name: Deploy to server
-        uses: easingthemes/ssh-deploy@v6
+        run: |
+          rsync -rlgoDzvc --delete --exclude=venv --exclude=.git ./ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/english_games -e "ssh -i ~/.ssh/id_rsa"
+
+      - name: Restart app on server
+        uses: appleboy/ssh-action@v1.0.0
         with:
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          ARGS: "-rlgoDzvc -i --delete --exclude=venv --exclude=.git"
-          SOURCE: "./"
-          REMOTE_HOST: ${{ secrets.SSH_HOST }}
-          REMOTE_USER: ${{ secrets.SSH_USER }}
-          TARGET: "/opt/english_games"
-          SCRIPT_AFTER: |
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
             cd /opt/english_games
-            source venv/bin/activate
-            pip install -r requirements.txt
             screen -S game -X quit 2>/dev/null || true
             screen -dmS game bash -c "source venv/bin/activate && python app.py"
