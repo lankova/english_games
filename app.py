@@ -38,5 +38,5 @@ register_handlers_g2(socketio, rooms_game2, save_room_to_db, generate_room_code)
 if __name__ == '__main__':
     # Use environment variable to control debug mode: True locally, False in production
     debug_mode = os.environ.get('FLASK_DEBUG', 'True') == 'True'
-    socketio.run(app, debug=debug_mode, host='0.0.0.0', port=5000)
+    socketio.run(app, debug=False, host='0.0.0.0', port=5000)
 
