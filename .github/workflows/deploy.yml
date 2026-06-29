@@ -39,6 +39,10 @@ jobs:
         run: |
           rsync -rlgoDzvc --delete --exclude=venv --exclude=.git -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" ./ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/english_games
 
+      - name: Init database
+        run: |
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd /opt/english_games && source venv/bin/activate && python -c 'from shared.database import init_db; init_db()'"
+
       - name: Restart app on server
         uses: appleboy/ssh-action@v1.0.0
         with:
