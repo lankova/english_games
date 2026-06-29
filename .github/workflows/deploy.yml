@@ -34,11 +34,10 @@ jobs:
           echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           # owner read+write, group/others no access
           chmod 600 ~/.ssh/id_rsa
-          echo "${{ secrets.SSH_HOST_KEY }}" > ~/.ssh/known_hosts
 
       - name: Deploy to server
         run: |
-          rsync -rlgoDzvc --delete --exclude=venv --exclude=.git ./ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/english_games -e "ssh -i ~/.ssh/id_rsa"
+          rsync -rlgoDzvc --delete --exclude=venv --exclude=.git -e "ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no" ./ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/opt/english_games
 
       - name: Restart app on server
         uses: appleboy/ssh-action@v1.0.0
