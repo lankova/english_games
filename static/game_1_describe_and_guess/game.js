@@ -67,16 +67,53 @@ function handleAllCardsDone() {
     endRound();
 }
 
+function getRenameOptions() {
+    return {
+        ownName: playerName,
+        onRenameRequest: (newName) => {
+            socket.emit('rename_player', {
+                room_code: currentRoomCode,
+                old_name: playerName,
+                new_name: newName,
+            });
+        },
+    };
+}
+
+function applyLocalPlayerRename(oldName, newName) {
+    if (oldName !== playerName) return;
+    playerName = newName;
+    const input = document.getElementById('playerName');
+    if (input) input.value = newName;
+}
+
+function updateExplainerNameDisplay() {
+    const el = document.getElementById('explainer-name');
+    if (!el || !explainerName) return;
+    PlayerNameEdit.setPlayerNameElement(el, explainerName, getRenameOptions());
+}
+
+function fillScoreboardTable(scoreboard) {
+    const tbody = document.querySelector('#results-table tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    (scoreboard || []).forEach((row) => {
+        const tr = document.createElement('tr');
+        tr.appendChild(PlayerNameEdit.createNameTd(row.name, getRenameOptions()));
+        const tdScore = document.createElement('td');
+        tdScore.textContent = row.display;
+        tr.appendChild(tdScore);
+        tbody.appendChild(tr);
+    });
+}
+
 // Update players on score screen
 function updatePlayersList(playersArray) {
     const playersList = document.getElementById('players-list');
     if (!playersList) return;
     playersList.innerHTML = '';
     playersArray.forEach(name => {
-        const li = document.createElement('li');
-        li.setAttribute('data-player', name);
-        li.textContent = name;
-        playersList.appendChild(li);
+        playersList.appendChild(PlayerNameEdit.createNameLi(name, getRenameOptions()));
     });
 }
 
@@ -221,7 +258,7 @@ socket.on('game_started', () => {
 
 socket.on('round_started', (data) => {
     explainerName = data.explainer;
-    document.getElementById('explainer-name').textContent = explainerName;
+    updateExplainerNameDisplay();
 
     // Hide "I'll explain" button and prompt for everyone
     document.querySelector('.explainer-prompt').style.display = 'none';
@@ -375,19 +412,34 @@ socket.on('scoreboard_update', (data) => {
     const tbody = document.querySelector('#results-table tbody');
     tbody.innerHTML = '';
 
-    // Using textContent  to avoid XSS (Cross-Site Scripting)
-    data.scoreboard.forEach(row => {
-        const tr = document.createElement('tr'); // table row
-        const tdName = document.createElement('td'); // table data
-        tdName.textContent = row.name; // pLayer's name
-        const tdScore = document.createElement('td'); // player's score
-        tdScore.textContent = row.display;
-        tr.appendChild(tdName);
-        tr.appendChild(tdScore);
-        tbody.appendChild(tr);
-    });
+    fillScoreboardTable(data.scoreboard);
 
     document.getElementById('score-table').style.display = 'block';
+});
+
+socket.on('player_renamed', (data) => {
+    applyLocalPlayerRename(data.old_name, data.new_name);
+    updatePlayersList(data.players);
+    if (data.explainer) {
+        explainerName = data.explainer;
+        updateExplainerNameDisplay();
+    }
+    if (data.last_round) {
+        const msg = document.getElementById('result-message');
+        if (msg && document.getElementById('round-result').style.display === 'block') {
+            const score = data.last_round.score;
+            const pointsWord = score !== 1 ? 'points' : 'point';
+            msg.textContent =
+                `${data.last_round.player} got ${score} ${pointsWord} this round!`;
+        }
+    }
+    if (data.scoreboard && document.getElementById('score-table').style.display === 'block') {
+        fillScoreboardTable(data.scoreboard);
+    }
+});
+
+socket.on('rename_error', (data) => {
+    PlayerNameEdit.showRenameError(data.message || 'Could not rename');
 });
 
 // Next round button
@@ -470,8 +522,8 @@ document.getElementById('submit_name_btn').onclick = () => {
             nameError.classList.add('show');
             return;
         }
-        if (playerName.length > 20) {
-            nameError.textContent = 'Name is too long (max 20 characters)';
+        if (playerName.length > PlayerNameEdit.MAX_LEN) {
+            nameError.textContent = `Name is too long (max ${PlayerNameEdit.MAX_LEN} characters)`;
             nameError.classList.add('show');
             return;
         }

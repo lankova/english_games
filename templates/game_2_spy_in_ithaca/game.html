@@ -16,7 +16,7 @@
         <!-- Screen 1: enter your name -->
         <div id="screen-name">
             <h1>Enter your name</h1>
-            <input type="text" id="playerName" minlength="1" maxlength="20">
+            <input type="text" id="playerName" minlength="1" maxlength="10">
             <p id="name-error" class="name-error"></p>
             <button id="submit_name_btn" class="ok-button">OK</button>
         </div>
@@ -295,6 +295,7 @@
     </div>
 
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="{{ url_for('static', filename='common/player_name_edit.js') }}"></script>
     <script src="{{ url_for('static', filename='game_2_spy_in_ithaca/game.js') }}"></script>
 </body>
 </html>

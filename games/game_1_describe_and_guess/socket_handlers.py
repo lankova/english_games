@@ -46,6 +46,45 @@ def _next_word(room_data):
     return word
 
 
+def _validate_player_name(name):
+    name = (name or "").strip()
+    if not name or len(name) > 10:
+        return None
+    return name
+
+
+def _rename_ordered_key(mapping, old_key, new_key):
+    if old_key not in mapping:
+        return
+    items = [(new_key if k == old_key else k, v) for k, v in mapping.items()]
+    mapping.clear()
+    mapping.update(items)
+
+
+def _rename_player_in_room(room_data, old_name, new_name):
+    _rename_ordered_key(room_data["players"], old_name, new_name)
+
+    if room_data.get("host_name") == old_name:
+        room_data["host_name"] = new_name
+    if room_data.get("explainer") == old_name:
+        room_data["explainer"] = new_name
+
+    last_round = room_data.get("last_round")
+    if last_round and last_round.get("player") == old_name:
+        last_round["player"] = new_name
+
+    sids = room_data.setdefault("player_sids", {})
+    if old_name in sids:
+        _rename_ordered_key(sids, old_name, new_name)
+
+
+def _can_rename_player(room_data, old_name, sid):
+    if room_data.get("host_sid") == sid and room_data.get("host_name") == old_name:
+        return True
+    sids = room_data.get("player_sids", {})
+    return sids.get(old_name) == sid
+
+
 def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
     """Register all SocketIO event handlers for Game 1."""
     global rooms, save_room_to_db, generate_room_code
@@ -55,7 +94,10 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
 
     @socketio.on('create_room')
     def handle_create_room(data):
-        player_name = data.get('name')
+        player_name = _validate_player_name(data.get('name'))
+        if not player_name:
+            emit('error', {'message': 'Name must be 1-10 characters'})
+            return
         room_code = generate_room_code()
         sid = request.sid
         host_token = secrets.token_hex(16)
@@ -65,6 +107,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
             'host_name': player_name,
             'host_token': host_token,
             'players': {player_name: 0},
+            'player_sids': {player_name: sid},
             'game_started': False,
             'round_active': False,
             'explainer': None,
@@ -89,9 +132,13 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         Join existing game room.
         Expects: { 'name': player_name, 'room_code': room_code }
         """
-        player_name = data.get('name')
+        player_name = _validate_player_name(data.get('name'))
         room_code = data.get('room_code')
         client_host_token = data.get('host_token')
+
+        if not player_name:
+            emit('error', {'message': 'Name must be 1-10 characters'})
+            return
 
         # Check if room exists
         if room_code not in rooms:
@@ -107,6 +154,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
             client_host_token == room_data.get('host_token')):
 
                 room_data['host_sid'] = request.sid
+                room_data.setdefault('player_sids', {})[player_name] = request.sid
                 join_room(room_code)
                 emit('room_created', {
                     'room_code': room_code,
@@ -123,6 +171,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
 
         if player_name not in room_data['players']:
             room_data['players'][player_name] = 0
+        room_data.setdefault('player_sids', {})[player_name] = request.sid
         join_room(room_code)
 
         save_room_to_db(room_code, rooms)
@@ -398,6 +447,55 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         room_code = data.get('room_code')
         if room_code in rooms:
             rooms[room_code]['all_cards_done'] = True
+
+    @socketio.on('rename_player')
+    def handle_rename_player(data):
+        room_code = data.get('room_code')
+        old_name = _validate_player_name(data.get('old_name'))
+        new_name = _validate_player_name(data.get('new_name'))
+
+        if not old_name or not new_name:
+            emit('rename_error', {'message': 'Invalid name'}, to=request.sid)
+            return
+
+        if room_code not in rooms:
+            emit('rename_error', {'message': 'Room not found'}, to=request.sid)
+            return
+
+        room_data = rooms[room_code]
+        sid = request.sid
+
+        if not _can_rename_player(room_data, old_name, sid):
+            emit('rename_error', {'message': 'You can only rename yourself'}, to=request.sid)
+            return
+
+        if old_name not in room_data['players']:
+            emit('rename_error', {'message': 'Player not found'}, to=request.sid)
+            return
+
+        if new_name != old_name and new_name in room_data['players']:
+            emit('rename_error', {
+                'message': 'This name is already taken. Please choose another.',
+            }, to=request.sid)
+            return
+
+        if new_name == old_name:
+            return
+
+        _rename_player_in_room(room_data, old_name, new_name)
+        save_room_to_db(room_code, rooms)
+
+        emit('player_renamed', {
+            'old_name': old_name,
+            'new_name': new_name,
+            'players': list(room_data['players'].keys()),
+            'explainer': room_data.get('explainer'),
+            'last_round': room_data.get('last_round'),
+            'scoreboard': [
+                {'name': name, 'display': str(total)}
+                for name, total in room_data['players'].items()
+            ],
+        }, to=room_code)
 
     @socketio.on('disconnect')
     def handle_disconnect():

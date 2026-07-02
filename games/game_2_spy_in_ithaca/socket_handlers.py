@@ -176,6 +176,71 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
             join_room(room_code)
         return player
 
+    def _validate_player_name(name):
+        name = (name or "").strip()
+        if not name or len(name) > 10:
+            return None
+        return name
+
+    def _rename_ordered_key(mapping, old_key, new_key):
+        if old_key not in mapping:
+            return
+        items = [(new_key if k == old_key else k, v) for k, v in mapping.items()]
+        mapping.clear()
+        mapping.update(items)
+
+    def _rename_player_in_room(room, old_name, new_name):
+        players = room.get("players", {})
+        if old_name not in players:
+            return False
+
+        _rename_ordered_key(players, old_name, new_name)
+
+        roles = room.get("roles", {})
+        if old_name in roles:
+            _rename_ordered_key(roles, old_name, new_name)
+
+        ready = room.get("role_ready", [])
+        room["role_ready"] = [new_name if n == old_name else n for n in ready]
+
+        for field in ("vote_initiator", "vote_accused", "guess_spy"):
+            if room.get(field) == old_name:
+                room[field] = new_name
+
+        votes = {}
+        for voter, target in room.get("votes", {}).items():
+            votes[new_name if voter == old_name else voter] = (
+                new_name if target == old_name else target
+            )
+        room["votes"].clear()
+        room["votes"].update(votes)
+
+        ballots = {}
+        for voter, ballot in room.get("vote_ballots", {}).items():
+            nk = new_name if voter == old_name else voter
+            nb = dict(ballot)
+            if nb.get("target") == old_name:
+                nb["target"] = new_name
+            ballots[nk] = nb
+        room["vote_ballots"].clear()
+        room["vote_ballots"].update(ballots)
+
+        questions = room.get("player_questions", {})
+        if old_name in questions:
+            _rename_ordered_key(questions, old_name, new_name)
+
+        last = room.get("last_result")
+        if last:
+            if last.get("accused") == old_name:
+                last["accused"] = new_name
+            if last.get("spy") == old_name:
+                last["spy"] = new_name
+            msg = last.get("message")
+            if msg and old_name in msg:
+                last["message"] = msg.replace(old_name, new_name)
+
+        return True
+
     _MID_ROUND_PHASES = frozenset({
         "role_reveal", "playing", "vote_nominate", "voting", "spy_guess", "final_vote",
     })
@@ -932,9 +997,9 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
 
     @socketio.on("spy_create_room")
     def handle_spy_create_room(data):
-        name = (data.get("name") or "").strip()
+        name = _validate_player_name(data.get("name"))
         if not name:
-            emit("error", {"message": "Name is required"})
+            emit("error", {"message": "Name must be 1-10 characters"})
             return
 
         room_code = generate_room_code()
@@ -977,12 +1042,16 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
 
     @socketio.on("spy_join_room")
     def handle_spy_join_room(data):
-        name = (data.get("name") or "").strip()
+        name = _validate_player_name(data.get("name"))
         room_code = data.get("room_code")
 
         room = _room(room_code)
         if not room:
             emit("error", {"message": "Room not found"})
+            return
+
+        if not name:
+            emit("error", {"message": "Name must be 1-10 characters"})
             return
 
         if name in room["players"]:
@@ -1052,6 +1121,63 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         join_room(room_code)
         save_room_to_db(room_code, rooms)
         _catch_up_player(room_code, name)
+
+    @socketio.on("spy_rename_player")
+    def handle_spy_rename_player(data):
+        room_code = data.get("room_code")
+        new_name = _validate_player_name(data.get("new_name"))
+        room = _room(room_code)
+        if not room:
+            emit("rename_error", {"message": "Room not found"}, to=request.sid)
+            return
+
+        old_name = _resolve_player(room, room_code, data)
+        if not old_name:
+            emit("rename_error", {"message": "You can only rename yourself"}, to=request.sid)
+            return
+
+        if not new_name:
+            emit("rename_error", {"message": "Invalid name"}, to=request.sid)
+            return
+
+        if new_name == old_name:
+            return
+
+        if new_name in room["players"]:
+            emit("rename_error", {
+                "message": "This name is already taken. Please choose another.",
+            }, to=request.sid)
+            return
+
+        if not _rename_player_in_room(room, old_name, new_name):
+            emit("rename_error", {"message": "Player not found"}, to=request.sid)
+            return
+
+        save_room_to_db(room_code, rooms)
+
+        payload = {
+            "old_name": old_name,
+            "new_name": new_name,
+            "players": _players_list(room),
+            "vote_initiator": room.get("vote_initiator"),
+            "vote_accused": room.get("vote_accused"),
+            "guess_spy": room.get("guess_spy"),
+        }
+        if room.get("phase") == "role_reveal":
+            ready, waiting_for = _role_ready_waiting_for(room)
+            payload["role_ready"] = {
+                "ready": ready,
+                "waiting_for": waiting_for,
+            }
+        if room.get("phase") == "final_vote":
+            payload["final_votes"] = dict(room.get("votes", {}))
+
+        payload["scoreboard"] = _scoreboard(room)
+        if room.get("last_result"):
+            payload["last_result"] = room["last_result"]
+        payload["secret_location"] = room.get("secret_location")
+
+        socketio.emit("spy_player_renamed", payload, to=room_code)
 
     @socketio.on("spy_start_game")
     def handle_spy_start_game(data):

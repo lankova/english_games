@@ -2361,3 +2361,135 @@ body.light-theme .setup-form label.setup-checkbox input[type="checkbox"]:checked
     color: var(--text-secondary);
     margin: 0.5rem 0 1rem;
 }
+
+.player-name-row {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    max-width: 100%;
+}
+
+.player-name-label {
+    cursor: default;
+}
+
+.player-name-edit-btn {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.1rem;
+    margin: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: var(--text-muted);
+    line-height: 1;
+    border-radius: 4px;
+}
+
+.player-name-edit-btn:hover {
+    color: var(--accent);
+}
+
+.player-name-edit-btn:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+}
+
+.player-name-edit-icon {
+    display: block;
+}
+
+#players-list li.player-name-own,
+.players-list-vertical li.player-name-own {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.player-name-editing {
+    box-sizing: border-box;
+    vertical-align: top;
+    transition: width 0.15s ease;
+    overflow: visible;
+}
+
+#players-list li.player-name-editing {
+    list-style: none;
+}
+
+.player-name-edit-input {
+    display: block;
+    width: 100%;
+    height: 100%;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    outline: none;
+    box-shadow: none;
+    border-radius: 0;
+    font: inherit;
+    font-size: inherit;
+    font-family: inherit;
+    font-weight: inherit;
+    line-height: inherit;
+    letter-spacing: inherit;
+    text-align: start;
+    color: inherit;
+    background: transparent;
+    box-sizing: border-box;
+}
+
+.player-name-edit-input:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.players-list-vertical li.player-name-editing .player-name-edit-input,
+#players-list li.player-name-editing .player-name-edit-input {
+    background: transparent;
+    color: inherit;
+}
+
+#results-table td.player-name-editing .player-name-edit-input {
+    background: transparent;
+    color: inherit;
+}
+
+#explainer-name.player-name-own {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+#explainer-name.player-name-editing .player-name-edit-input {
+    background: transparent;
+    color: inherit;
+    font-weight: inherit;
+}
+
+.player-rename-toast {
+    position: fixed;
+    left: 50%;
+    bottom: 1.5rem;
+    transform: translateX(-50%);
+    z-index: 10000;
+    max-width: min(90vw, 24rem);
+    padding: 0.65rem 1rem;
+    border-radius: 8px;
+    background: var(--dialog-bg);
+    color: var(--text);
+    border: 1px solid var(--card-border);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+.player-rename-toast.show {
+    opacity: 1;
+    pointer-events: auto;
+}

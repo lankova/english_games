@@ -145,6 +145,36 @@ class TestSpyRoomManagement:
         assert 'Bob' in guest_data['players']
         assert 'Bob' in rooms_game2[room_code]['players']
 
+    @allure.story("Rename player")
+    @allure.title("Player can rename themselves")
+    def test_rename_player(self, socket_client, guest_client_factory):
+        room_code = _create_room(socket_client)
+        socket_client.get_received()
+
+        guest = guest_client_factory()
+        _join(guest, room_code, 'Bob')
+        guest.get_received()
+        socket_client.get_received()
+
+        guest.emit('spy_rename_player', {
+            'room_code': room_code,
+            'player_name': 'Bob',
+            'new_name': 'Bobby',
+        })
+        renamed = [e for e in guest.get_received() if e['name'] == 'spy_player_renamed']
+        assert renamed, "Expected spy_player_renamed event"
+        payload = renamed[0]['args'][0]
+        assert payload['new_name'] == 'Bobby'
+        assert payload['players'] == ['Alice', 'Bobby']
+
+        socket_client.emit('spy_rename_player', {
+            'room_code': room_code,
+            'player_name': 'Alice',
+            'new_name': 'Bobby',
+        })
+        errors = [e for e in socket_client.get_received() if e['name'] == 'rename_error']
+        assert errors, "Duplicate name should be rejected"
+
     @allure.story("Join a non-existent room")
     @allure.title("Invalid room code - should return error")
     @allure.severity(allure.severity_level.NORMAL)

@@ -140,14 +140,94 @@ function hideAllScreens() {
     document.getElementById('screen-error').style.display = 'none';
 }
 
+function fillScoreboardTable(scoreboard) {
+    const tbody = document.querySelector('#results-table tbody');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    (scoreboard || []).forEach((row) => {
+        const tr = document.createElement('tr');
+        tr.appendChild(PlayerNameEdit.createNameTd(row.name, getRenameOptions()));
+        const tdScore = document.createElement('td');
+        tdScore.textContent = row.display;
+        tr.appendChild(tdScore);
+        tbody.appendChild(tr);
+    });
+}
+
+
+function getRenameOptions() {
+    return {
+        ownName: playerName,
+        onRenameRequest: (newName) => {
+            emitWithPlayer('spy_rename_player', { new_name: newName });
+        },
+    };
+}
+
+function applyLocalPlayerRename(oldName, newName) {
+    if (oldName !== playerName) return;
+    playerName = newName;
+    savePlayerSession();
+    const input = document.getElementById('playerName');
+    if (input) input.value = newName;
+}
+
+function refreshNameDependentUI(data) {
+    if (data.vote_initiator != null) currentVoteInitiator = data.vote_initiator;
+    if (data.vote_accused != null) currentVoteAccused = data.vote_accused;
+    if (data.guess_spy != null) guessSpyName = data.guess_spy;
+
+    if (data.role_ready) {
+        updateRoleWaitingMessage(data.role_ready);
+    }
+
+    const votePanel = document.getElementById('vote-panel');
+    if (votePanel && votePanel.style.display !== 'none' && currentVoteAccused) {
+        updateVoteButtonLabels(currentVoteAccused, currentVoteInitiator);
+    }
+
+    const finalPanel = document.getElementById('final-vote-panel');
+    if (finalPanel && finalPanel.style.display !== 'none') {
+        const votes = data.final_votes || {};
+        const myVote = playerName ? votes[playerName] : null;
+        populateFinalVoteSelect(data.players || playersListCache, myVote);
+        updateFinalVoteStatus({
+            votes,
+            ballots_count: Object.keys(votes).length,
+            players_count: (data.players || playersListCache).length,
+        });
+    }
+
+    const roundResult = document.getElementById('round-result');
+    if (roundResult && roundResult.style.display === 'block' && data.last_result) {
+        const resultView = getRoundResultView({
+            result: data.last_result,
+            secret_location: data.secret_location || '',
+        });
+        document.getElementById('result-message').textContent = resultView.message;
+    }
+
+    const nomPanel = document.getElementById('vote-nominate-panel');
+    if (nomPanel && nomPanel.style.display !== 'none' && currentVoteInitiator) {
+        showNominationPanel(currentVoteInitiator);
+    }
+
+    const guessPanel = document.getElementById('spy-guess-panel');
+    if (guessPanel && guessPanel.style.display !== 'none' && guessSpyName) {
+        showSpyGuessPanel(guessSpyName);
+    }
+
+    if (data.scoreboard && document.getElementById('score-table').style.display === 'block') {
+        fillScoreboardTable(data.scoreboard);
+    }
+}
+
 function renderWaitingPlayers(names) {
     const ul = document.getElementById('players-list');
     if (!ul) return;
     ul.innerHTML = '';
     names.forEach((name) => {
-        const li = document.createElement('li');
-        li.textContent = name;
-        ul.appendChild(li);
+        ul.appendChild(PlayerNameEdit.createNameLi(name, getRenameOptions()));
     });
 }
 
@@ -251,8 +331,10 @@ function updateNewRoundButtonVisibility() {
     }
     const roleScreen = document.getElementById('screen-role').style.display === 'flex';
     const playScreen = document.getElementById('screen-locations').style.display === 'flex';
-    btn.style.display = (roleScreen || playScreen) ? 'inline-block' : 'none';
-    btn.classList.toggle('spy-new-round-btn--play', playScreen);
+    const resultScreen = document.getElementById('round-result').style.display === 'block';
+    const showOnPlay = playScreen && !resultScreen;
+    btn.style.display = (roleScreen || showOnPlay) ? 'inline-block' : 'none';
+    btn.classList.toggle('spy-new-round-btn--play', showOnPlay);
     syncRestartRoundButtonWidth();
 }
 
@@ -896,16 +978,7 @@ function showRoundResult(data) {
 
     const tbody = document.querySelector('#results-table tbody');
     tbody.innerHTML = '';
-    (data.scoreboard || []).forEach((row) => {
-        const tr = document.createElement('tr');
-        const tdName = document.createElement('td');
-        tdName.textContent = row.name;
-        const tdScore = document.createElement('td');
-        tdScore.textContent = row.display;
-        tr.appendChild(tdName);
-        tr.appendChild(tdScore);
-        tbody.appendChild(tr);
-    });
+    fillScoreboardTable(data.scoreboard || []);
     document.getElementById('score-table').style.display = 'block';
 
     document.getElementById('next-round-btn').style.display = 'block';
@@ -989,6 +1062,20 @@ socket.on('spy_room_created', (data) => {
 
 socket.on('spy_player_joined', (data) => {
     updatePlayersEverywhere(data.players);
+});
+
+socket.on('spy_player_renamed', (data) => {
+    if (localCrossedPlayers.has(data.old_name)) {
+        localCrossedPlayers.delete(data.old_name);
+        localCrossedPlayers.add(data.new_name);
+    }
+    applyLocalPlayerRename(data.old_name, data.new_name);
+    updatePlayersEverywhere(data.players);
+    refreshNameDependentUI(data);
+});
+
+socket.on('rename_error', (data) => {
+    PlayerNameEdit.showRenameError(data.message || 'Could not rename');
 });
 
 socket.on('spy_state_update', (data) => {
@@ -1193,8 +1280,8 @@ document.getElementById('submit_name_btn').addEventListener('click', () => {
         nameError.classList.add('show');
         return;
     }
-    if (playerName.length > 20) {
-        nameError.textContent = 'Name is too long (max 20 characters)';
+    if (playerName.length > PlayerNameEdit.MAX_LEN) {
+        nameError.textContent = `Name is too long (max ${PlayerNameEdit.MAX_LEN} characters)`;
         nameError.classList.add('show');
         return;
     }

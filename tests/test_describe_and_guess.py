@@ -110,6 +110,37 @@ class TestDnGRoomManagement:
         assert player_joined_event['args'][0]['player'] == 'Bob'
         assert 'Bob' in player_joined_event['args'][0]['players']
 
+    @allure.story("Rename player")
+    @allure.title("Player can rename themselves")
+    def test_rename_player(self, host_client, guest_client_factory):
+        host, room_code, _ = host_client
+        guest = guest_client_factory()
+        guest.emit('join_room', {'room_code': room_code, 'name': 'Bob'})
+        guest.get_received()
+        host.get_received()
+
+        guest.emit('rename_player', {
+            'room_code': room_code,
+            'old_name': 'Bob',
+            'new_name': 'Bobby',
+        })
+        renamed = [e for e in guest.get_received() if e['name'] == 'player_renamed']
+        assert renamed, "Expected player_renamed event"
+        payload = renamed[0]['args'][0]
+        assert payload['new_name'] == 'Bobby'
+        assert payload['players'] == ['Alice', 'Bobby']
+
+        host_renamed = [e for e in host.get_received() if e['name'] == 'player_renamed']
+        assert host_renamed
+
+        host.emit('rename_player', {
+            'room_code': room_code,
+            'old_name': 'Bobby',
+            'new_name': 'Hacked',
+        })
+        errors = [e for e in host.get_received() if e['name'] == 'rename_error']
+        assert errors, "Host should not rename another player"
+
     @allure.story("Join a non-existent room")
     @allure.title("Joining invalid room code - should return error message")
     @allure.severity(allure.severity_level.NORMAL)
