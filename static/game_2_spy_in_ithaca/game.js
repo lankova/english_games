@@ -1455,13 +1455,24 @@ document.getElementById('goHomeBtn').addEventListener('click', () => {
 });
 
 // Theme toggle (shared with other game pages)
+function updateLobbyCatImage(isLight) {
+    document.querySelectorAll('.lobby-cat').forEach((lobbyCat) => {
+        lobbyCat.src = isLight
+            ? '/static/common/images/orange_cat_light.png'
+            : '/static/common/images/orange_cat_waiting.png';
+    });
+}
+
 const themeToggle = document.getElementById('theme-toggle');
 if (localStorage.getItem('theme') === 'light') {
     document.body.classList.add('light-theme');
 }
 themeToggle.addEventListener('click', () => {
     document.body.classList.toggle('light-theme');
-    localStorage.setItem('theme', document.body.classList.contains('light-theme') ? 'light' : 'dark');
+    const isLight = document.body.classList.contains('light-theme');
+    localStorage.setItem('theme', isLight ? 'light' : 'dark');
+    updateLobbyCatImage(isLight);
 });
+updateLobbyCatImage(document.body.classList.contains('light-theme'));
 
 window.addEventListener('resize', syncRestartRoundButtonWidth);

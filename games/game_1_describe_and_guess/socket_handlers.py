@@ -26,11 +26,27 @@ def _load_all_words():
     return _ALL_WORDS
 
 
+_ROTATE_EXPLAINER = '__rotate__'
+_WORD_SET_KEYS = frozenset({'easy', 'medium', 'odyssey'})
+
+
+def _word_list_for_set(word_set):
+    data = _load_all_words()
+    if isinstance(data, list):
+        return list(data)
+    return list(data.get(word_set, data.get('easy', [])))
+
+
+def _default_settings():
+    return {'word_set': 'easy', 'explainer': _ROTATE_EXPLAINER}
+
+
 def _init_word_pool(room_data):
-    words = list(_load_all_words())
+    word_set = room_data.get('settings', _default_settings()).get('word_set', 'easy')
+    words = _word_list_for_set(word_set)
     random.shuffle(words)
-    room_data["word_pool"] = words
-    room_data["word_pool_index"] = 0
+    room_data['word_pool'] = words
+    room_data['word_pool_index'] = 0
 
 
 def _next_word(room_data):
@@ -44,6 +60,49 @@ def _next_word(room_data):
     word = pool[idx]
     room_data["word_pool_index"] = idx + 1
     return word
+
+
+def _validate_player_name(name):
+    name = (name or "").strip()
+    if not name or len(name) > 10:
+        return None
+    return name
+
+
+def _rename_ordered_key(mapping, old_key, new_key):
+    if old_key not in mapping:
+        return
+    items = [(new_key if k == old_key else k, v) for k, v in mapping.items()]
+    mapping.clear()
+    mapping.update(items)
+
+
+def _rename_player_in_room(room_data, old_name, new_name):
+    _rename_ordered_key(room_data["players"], old_name, new_name)
+
+    if room_data.get("host_name") == old_name:
+        room_data["host_name"] = new_name
+    if room_data.get("explainer") == old_name:
+        room_data["explainer"] = new_name
+
+    settings = room_data.get("settings")
+    if settings and settings.get("explainer") == old_name:
+        settings["explainer"] = new_name
+
+    last_round = room_data.get("last_round")
+    if last_round and last_round.get("player") == old_name:
+        last_round["player"] = new_name
+
+    sids = room_data.setdefault("player_sids", {})
+    if old_name in sids:
+        _rename_ordered_key(sids, old_name, new_name)
+
+
+def _can_rename_player(room_data, old_name, sid):
+    if room_data.get("host_sid") == sid and room_data.get("host_name") == old_name:
+        return True
+    sids = room_data.get("player_sids", {})
+    return sids.get(old_name) == sid
 
 
 def _validate_player_name(name):
@@ -92,6 +151,116 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
     save_room_to_db = save_room_fn
     generate_room_code = generate_code_fn
 
+    def _players_list(room_data):
+        return list(room_data.get('players', {}).keys())
+
+    def _suggested_explainer(room_data):
+        players = _players_list(room_data)
+        if not players:
+            return None
+        idx = room_data.get('explainer_index', 0) % len(players)
+        return players[idx]
+
+    def _public_settings(room_data):
+        settings = room_data.setdefault('settings', _default_settings())
+        players = _players_list(room_data)
+        suggested = _suggested_explainer(room_data)
+        explainer = settings.get('explainer', _ROTATE_EXPLAINER)
+        if explainer == _ROTATE_EXPLAINER or explainer not in players:
+            explainer = suggested
+        return {
+            'word_set': settings.get('word_set', 'easy'),
+            'explainer': explainer,
+            'suggested_explainer': suggested,
+        }
+
+    def _lobby_payload(room_data):
+        return {
+            'players': _players_list(room_data),
+            'settings': _public_settings(room_data),
+            'host_name': room_data.get('host_name'),
+        }
+
+    def _finalize_round(room_code, player=None, client_score=0):
+        room_data = rooms.get(room_code)
+        if not room_data or room_data.get('round_ended'):
+            return False
+
+        room_data['round_ended'] = True
+        room_data['round_active'] = False
+        room_data['timer_paused'] = False
+
+        round_score = room_data.pop('round_score', client_score)
+        explainer = player or room_data.get('explainer')
+        if explainer and explainer in room_data['players']:
+            room_data['players'][explainer] += round_score
+
+        room_data['last_round'] = {
+            'player': explainer,
+            'score': round_score,
+        }
+        scoreboard = [
+            {'name': name, 'display': str(total)}
+            for name, total in room_data['players'].items()
+        ]
+        socketio.emit('scoreboard_update', {
+            'scoreboard': scoreboard,
+            'last_round': room_data['last_round'],
+            'all_cards_done': room_data.get('all_cards_done', False),
+        }, to=room_code)
+        room_data['explainer'] = None
+        save_room_to_db(room_code, rooms)
+        return True
+
+    def _resolve_explainer(room_data):
+        players = _players_list(room_data)
+        if not players:
+            return None
+        choice = room_data.get('settings', {}).get('explainer', _ROTATE_EXPLAINER)
+        if choice == _ROTATE_EXPLAINER:
+            return _suggested_explainer(room_data)
+        if choice in players:
+            return choice
+        return players[0]
+
+    def _apply_settings(room_data, data):
+        settings = room_data.setdefault('settings', _default_settings())
+        word_set = data.get('word_set')
+        if word_set in _WORD_SET_KEYS:
+            settings['word_set'] = word_set
+        explainer = data.get('explainer')
+        if explainer in room_data.get('players', {}):
+            settings['explainer'] = explainer
+
+    def _emit_lobby_state(room_code, target=None):
+        room_data = rooms.get(room_code)
+        if not room_data:
+            return
+        payload = _lobby_payload(room_data)
+        if target:
+            emit('lobby_state', payload, to=target)
+        else:
+            socketio.emit('lobby_state', payload, to=room_code)
+
+    def _start_round(room_code):
+        room_data = rooms[room_code]
+        explainer = _resolve_explainer(room_data)
+        if not explainer:
+            return False
+        room_data['game_started'] = True
+        room_data['all_cards_done'] = False
+        room_data['round_ended'] = False
+        _init_word_pool(room_data)
+        room_data['explainer'] = explainer
+        room_data['round_active'] = True
+        room_data.pop('last_round', None)
+        socketio.emit('round_started', {
+            'explainer': explainer,
+            'duration': room_data['duration'],
+            'settings': _public_settings(room_data),
+        }, to=room_code)
+        return True
+
     @socketio.on('create_room')
     def handle_create_room(data):
         player_name = _validate_player_name(data.get('name'))
@@ -113,7 +282,9 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
             'explainer': None,
             'round_start_time': None,
             'duration': 90,
-            'timer_thread': None
+            'timer_thread': None,
+            'settings': {**_default_settings(), 'explainer': player_name},
+            'explainer_index': 0,
         }
 
         save_room_to_db(room_code, rooms)
@@ -123,7 +294,9 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
             'room_code': room_code,
             'is_host': True,
             'host_token': host_token,
-            'players': list(rooms[room_code]['players'].keys())
+            'host_name': player_name,
+            'players': _players_list(rooms[room_code]),
+            'settings': _public_settings(rooms[room_code]),
         }, to=room_code)
 
     @socketio.on('join_room')
@@ -160,7 +333,9 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
                     'room_code': room_code,
                     'is_host': True,
                     'host_token': room_data.get('host_token'),
-                    'players': list(room_data['players'].keys())
+                    'host_name': room_data.get('host_name'),
+                    'players': _players_list(room_data),
+                    'settings': _public_settings(room_data),
                 }, to=request.sid)
                 return
 
@@ -178,40 +353,51 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
 
         emit('player_joined', {
             'player': player_name,
-            'players': list(room_data['players'].keys())
+            'players': _players_list(room_data),
+            'settings': _public_settings(room_data),
+            'host_name': room_data.get('host_name'),
         }, to=room_code)
 
         # Send current game state to the newly joined player
-        if room_data.get('game_started'):
-            emit('game_started', to=request.sid)
-            if room_data.get('round_active') and room_data.get('explainer'):
-                # Round is live
-                emit('round_started', {
-                    'explainer': room_data['explainer'],
-                    'duration': room_data['duration'],
-                    'late_join': True
-                }, to=request.sid)
+        if room_data.get('round_active') and room_data.get('explainer'):
+            emit('round_started', {
+                'explainer': room_data['explainer'],
+                'duration': room_data['duration'],
+                'late_join': True,
+            }, to=request.sid)
+        elif room_data.get('last_round') and room_data.get('round_ended'):
+            scoreboard = [
+                {'name': name, 'display': str(total)}
+                for name, total in room_data['players'].items()
+            ]
+            emit('scoreboard_update', {
+                'scoreboard': scoreboard,
+                'last_round': room_data['last_round'],
+                'all_cards_done': room_data.get('all_cards_done', False),
+            }, to=request.sid)
+        elif room_data.get('game_started'):
+            _emit_lobby_state(room_code, target=request.sid)
 
-            elif room_data.get('last_round'):
-                # Round just finished
-                scoreboard = [{'name': name, 'display': str(total)} for name, total in room_data['players'].items()]
 
-                emit('scoreboard_update', {
-                    'scoreboard': scoreboard,
-                    'last_round': room_data['last_round']
-                }, to=request.sid)
-
-                emit('scoreboard_update', {
-                    'scoreboard': scoreboard,
-                    'last_round': room_data['last_round']
-                }, to=room_code)
-
+    @socketio.on('dng_update_settings')
+    def handle_dng_update_settings(data):
+        room_code = data.get('room_code')
+        if room_code not in rooms:
+            return
+        room_data = rooms[room_code]
+        if request.sid != room_data.get('host_sid'):
+            emit('error', {'message': 'Only the host can change settings'}, to=request.sid)
+            return
+        if room_data.get('round_active'):
+            return
+        _apply_settings(room_data, data)
+        save_room_to_db(room_code, rooms)
+        _emit_lobby_state(room_code)
 
     @socketio.on('start_game')
     def handle_start_game(data):
         """
-        Start the game (only host can do this).
-        Expects: { 'room_code': room_code }
+        Start a round (only host). Applies lobby settings and begins play.
         """
         room_code = data.get('room_code')
         sid = request.sid
@@ -220,37 +406,49 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
             emit('error', {'message': 'Room not found'})
             return
 
-        # Only the host can start the game
-        if sid != rooms[room_code]['host_sid']:
+        room_data = rooms[room_code]
+        if sid != room_data.get('host_sid'):
             emit('error', {'message': 'Only the host can start the game'})
             return
 
-        rooms[room_code]['game_started'] = True
-        rooms[room_code]['all_cards_done'] = False
-        _init_word_pool(rooms[room_code])
-        emit('game_started', to=room_code)
+        if room_data.get('round_active'):
+            return
+
+        _apply_settings(room_data, data)
+        if not _start_round(room_code):
+            emit('error', {'message': 'Need at least one player'}, to=request.sid)
+            return
         save_room_to_db(room_code, rooms)
 
     @socketio.on('become_explainer')
     def handle_become_explainer(data):
+        # Legacy clients/tests: start round if explainer volunteers before round begins.
         room_code = data.get('room_code')
         player_name = data.get('player_name')
 
         if room_code not in rooms:
             return
         room_data = rooms[room_code]
-        if room_data['round_active'] or room_data['explainer'] is not None:
+        if room_data.get('round_active') or room_data.get('explainer') is not None:
             return
 
+        settings = room_data.setdefault('settings', _default_settings())
+        settings['explainer'] = player_name
+        if not room_data.get('game_started'):
+            room_data['game_started'] = True
+            room_data['all_cards_done'] = False
+            _init_word_pool(room_data)
         room_data['explainer'] = player_name
         room_data['round_active'] = True
 
         emit('round_started', {
             'explainer': player_name,
-            'duration': room_data['duration']
+            'duration': room_data['duration'],
+            'settings': _public_settings(room_data),
         }, to=room_code)
 
         room_data.pop('last_round', None)
+        save_room_to_db(room_code, rooms)
 
     @socketio.on('request_word')
     def handle_request_word(data):
@@ -338,6 +536,9 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
             except (TypeError, ValueError):
                 pass
         room['timer_paused'] = True
+        socketio.emit('timer_paused', {
+            'time_left': room.get('timer_time_left'),
+        }, to=room_code)
 
     @socketio.on('resume_timer')
     def handle_resume_timer(data):
@@ -350,7 +551,26 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         if room.get('timer_time_left', 0) <= 0:
             return
         room['timer_paused'] = False
+        socketio.emit('timer_resumed', {
+            'time_left': room['timer_time_left'],
+        }, to=room_code)
         emit('timer_update', {'time_left': room['timer_time_left']}, to=room_code)
+
+    @socketio.on('dng_restart_round')
+    def handle_dng_restart_round(data):
+        room_code = data.get('room_code')
+        if room_code not in rooms:
+            emit('error', {'message': 'Room not found'}, to=request.sid)
+            return
+        room_data = rooms[room_code]
+        if request.sid != room_data.get('host_sid'):
+            return
+        if room_data.get('round_ended'):
+            return
+        if not room_data.get('round_active') or room_data.get('explainer') is None:
+            return
+        room_data['round_active'] = False
+        _finalize_round(room_code)
 
     @socketio.on('score_update')
     def handle_score_update(data):
@@ -375,41 +595,13 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         room_data = rooms[room_code]
         if room_data.get('round_ended'):
             return
-        room_data['round_ended'] = True
 
-        player = data.get('player')
-        round_score = data.get('round_score')
-        client_score = data.get('round_score', 0)
-
-
-        room_data = rooms[room_code]
-
-        round_score = room_data.pop('round_score', client_score)
-
-        # Update total score
-        if player in room_data['players']:
-            room_data['players'][player] += round_score
-
-        # Store last round info - use the actual explainer from the room
-        room_data['last_round'] = {
-            'player': player,
-            'score': round_score
-        }
-
-        # Build scoreboard
-        scoreboard = [{'name': name, 'display': str(total)} for name, total in room_data['players'].items()]
-
-        emit('scoreboard_update', {
-            'scoreboard': scoreboard,
-            'last_round': room_data['last_round'],
-            'all_cards_done': room_data.get('all_cards_done', False)
-        }, to=room_code)
-
-        # Reset round state
-        room_data['round_active'] = False
-        room_data['explainer'] = None
-
-        save_room_to_db(room_code, rooms)
+        player = data.get('player') or room_data.get('explainer')
+        _finalize_round(
+            room_code,
+            player=player,
+            client_score=data.get('round_score', 0),
+        )
 
 
     @socketio.on('next_round')
@@ -422,8 +614,18 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         room_data['explainer'] = None
         room_data['timer_paused'] = False
         room_data.pop('last_round', None)
-        emit('next_round_ready', to=room_code)
         room_data['round_ended'] = False
+        players = _players_list(room_data)
+        if players:
+            room_data['explainer_index'] = (
+                room_data.get('explainer_index', 0) + 1
+            ) % len(players)
+            suggested = _suggested_explainer(room_data)
+            if suggested:
+                room_data.setdefault('settings', _default_settings())['explainer'] = suggested
+        emit('next_round_ready', {
+            **_lobby_payload(room_data),
+        }, to=room_code)
 
     # Check if a room exists before the player tries to join
     @socketio.on('check_room')
@@ -447,6 +649,56 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         room_code = data.get('room_code')
         if room_code in rooms:
             rooms[room_code]['all_cards_done'] = True
+
+    @socketio.on('rename_player')
+    def handle_rename_player(data):
+        room_code = data.get('room_code')
+        old_name = _validate_player_name(data.get('old_name'))
+        new_name = _validate_player_name(data.get('new_name'))
+
+        if not old_name or not new_name:
+            emit('rename_error', {'message': 'Invalid name'}, to=request.sid)
+            return
+
+        if room_code not in rooms:
+            emit('rename_error', {'message': 'Room not found'}, to=request.sid)
+            return
+
+        room_data = rooms[room_code]
+        sid = request.sid
+
+        if not _can_rename_player(room_data, old_name, sid):
+            emit('rename_error', {'message': 'You can only rename yourself'}, to=request.sid)
+            return
+
+        if old_name not in room_data['players']:
+            emit('rename_error', {'message': 'Player not found'}, to=request.sid)
+            return
+
+        if new_name != old_name and new_name in room_data['players']:
+            emit('rename_error', {
+                'message': 'This name is already taken. Please choose another.',
+            }, to=request.sid)
+            return
+
+        if new_name == old_name:
+            return
+
+        _rename_player_in_room(room_data, old_name, new_name)
+        save_room_to_db(room_code, rooms)
+
+        emit('player_renamed', {
+            'old_name': old_name,
+            'new_name': new_name,
+            'players': list(room_data['players'].keys()),
+            'host_name': room_data.get('host_name'),
+            'explainer': room_data.get('explainer'),
+            'last_round': room_data.get('last_round'),
+            'scoreboard': [
+                {'name': name, 'display': str(total)}
+                for name, total in room_data['players'].items()
+            ],
+        }, to=room_code)
 
     @socketio.on('rename_player')
     def handle_rename_player(data):
@@ -537,10 +789,14 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         room_data['all_cards_done'] = False
         room_data['round_ended'] = False
         room_data.pop('last_round', None)
-        _init_word_pool(room_data)
+        room_data['settings'] = _default_settings()
+        room_data['explainer_index'] = 0
+        players = _players_list(room_data)
+        if players:
+            room_data['settings']['explainer'] = players[0]
         # Reset scores
         for player in room_data['players']:
             room_data['players'][player] = 0
         save_room_to_db(room_code, rooms)
-        emit('new_game_ready', to=room_code)
+        emit('new_game_ready', _lobby_payload(room_data), to=room_code)
 

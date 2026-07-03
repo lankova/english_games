@@ -10,7 +10,23 @@
 
 <body class="page-game">
     <button id="theme-toggle" class="theme-toggle" title="Switch theme">🌓</button>
-    <div class="main-card"> <!-- Light card with rounded corners - purely decorative -->
+    <button
+        id="dng-restart-round-btn"
+        class="dng-restart-round-btn"
+        type="button"
+        style="display: none;"
+        title="Restart round"
+        aria-label="Restart round"
+    >
+        <svg class="dng-restart-round-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+                fill="currentColor"
+                d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"
+            />
+        </svg>
+    </button>
+    <div class="main-card">
+
         <!-- Screen 1: enter your name -->
         <div id="screen-name">
             <h1>Enter your name</h1>
@@ -19,60 +35,119 @@
             <button id="submit_name_btn" class="ok-button">OK</button>
         </div>
 
+        <!-- Screen 2: lobby and round settings -->
+        <div id="screen-waiting" class="dng-lobby-screen spy-lobby-screen" style="display: none;">
+            <div class="spy-lobby-body">
+                <section class="lobby-players-panel dng-lobby-players-panel">
+                    <h2 class="lobby-players-title">Players in the game</h2>
+                    <ul id="players-list" class="players-list-vertical"></ul>
+                </section>
 
-        <!-- Screen 2: waiting -->
-        <div id="screen-waiting" style="display: none;">
-            <h1>Waiting<br>
-                for players<br>
-                to join in...
-            </h1>
-            <!-- Players list -->
-            <ul id="players-list"></ul>
+                <div class="dng-lobby-spacer" aria-hidden="true"></div>
 
-            <!-- Start game button (visible only to the host) -->
-            <div class="startGame">
-                <button id="startGame" style="display: none;">Start the game</button>
+                <div class="dng-lobby-middle">
+                <form id="setup-form" class="setup-form">
+                    <h2 class="lobby-settings-title">Round settings</h2>
+
+                    <label>
+                        Word set
+                        <select id="setting-word-set">
+                            <option value="easy" selected>Easy (A1–A2)</option>
+                            <option value="medium">Medium (B1–B2)</option>
+                            <option value="odyssey">Odyssey</option>
+                        </select>
+                    </label>
+
+                    <label>
+                        Explainer
+                        <select id="setting-explainer"></select>
+                    </label>
+                </form>
+
+                <div class="invite-link-container">
+                    <p class="invite-link-title">Copy this link and send it to all players</p>
+                    <div class="invite-link-row">
+                        <input id="invite-link-input" class="invite-link-input" type="text" readonly>
+                        <button id="copy-invite-btn" class="invite-link-copy-btn" type="button">Copy</button>
+                    </div>
+                    <p id="copy-invite-status" class="invite-link-status"></p>
+                </div>
+
+                <p id="lobby-error" class="name-error lobby-error"></p>
+                </div>
+
+                <div class="dng-lobby-spacer" aria-hidden="true"></div>
             </div>
 
-        <!-- Picture of a waiting cat - adds a friendly touch -->
-            <img class="waiting-cat" src="{{ url_for('static', filename='common/images/orange_cat_waiting.png') }}" alt="Waiting cat">
+            <div class="startGame spy-lobby-footer dng-lobby-footer">
+                <img
+                    class="lobby-cat dng-lobby-cat"
+                    src="{{ url_for('static', filename='common/images/orange_cat_waiting.png') }}"
+                    alt="Waiting cat"
+                >
+                <button id="startGame" class="ok-button" type="button" style="display: none;">Start the round</button>
+                <p id="lobby-waiting-message" class="lobby-waiting-message" style="display: none;"></p>
+            </div>
         </div>
-
 
         <!-- Screen 3: Game -->
         <div id="screen-game" style="display: none;">
 
-            <!-- Explainer prompt -->
-            <p class="explainer-prompt">Who'll help us guess words?</p>
-
-            <!-- Button to become the explainer (shown to all players when game starts) -->
-            <button id="becomeExplainerBtn">I accept the challenge!</button>
-
-            <!-- Countdown before round starts -->
             <div id="countdown" style="display: none;">3</div>
 
-            <!-- Timer (visible to all, hidden until round starts) -->
-            <p class="guessing-timer-label" style="display: none;">Time left</p>
-            <div class="guessing-timer" id="guessing-timer" style="display: none;">90</div>
-
-            <!-- Cards container (hidden until an explainer is chosen) -->
-            <div class="card-container">
-                <h2 id="cardWord"></h2>
+            <div class="dng-timer-block">
+                <p class="guessing-timer-label" id="guessing-timer-label" style="display: none;">Time left</p>
+                <div class="dng-timer-display">
+                    <div class="guessing-timer" id="guessing-timer" style="display: none;">90</div>
+                    <div class="dng-timer-controls" id="dng-timer-controls" style="display: none;">
+                        <button
+                            id="pause-timer-btn"
+                            class="timer-control-btn timer-icon-btn"
+                            type="button"
+                            aria-label="Pause"
+                        >
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <rect x="6" y="5" width="4" height="14" rx="1"></rect>
+                                <rect x="14" y="5" width="4" height="14" rx="1"></rect>
+                            </svg>
+                        </button>
+                        <button
+                            id="resume-timer-btn"
+                            class="timer-control-btn timer-icon-btn"
+                            type="button"
+                            aria-label="Resume"
+                            style="display: none;"
+                        >
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M8 5v14l11-7L8 5z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
             </div>
 
-            <!-- Action buttons (only for the explainer) -->
+            <div class="card-container" style="display: none;">
+                <h2 id="cardWord" style="display: none;"></h2>
+            </div>
+
             <div class="action-buttons">
-                <button id="skipBtn">Skip</button>
-                <button id="guessedBtn">Guessed</button>
+                <button id="skipBtn" style="display: none;">Skip</button>
+                <button id="guessedBtn" style="display: none;">Guessed</button>
             </div>
 
-            <!-- Message for non-explainers during the round -->
             <div id="message_non-explainers" style="display: none;">
                 <div class="guessing-screen">
-                    <p class="guessing-explainer" id="explainer-message">
-                        <span id="explainer-name">The explainer</span> is describing a word.
-                    </p>
-                    <p class="guessing-cta">Guess it!</p>
+                    <div class="guessing-screen-text">
+                        <p class="guessing-explainer" id="explainer-message">
+                            <span id="explainer-name">The explainer</span> is describing a word.
+                        </p>
+                        <p class="guessing-cta">Guess it!</p>
+                    </div>
+                    <img
+                        class="dng-guessing-cat"
+                        src="{{ url_for('static', filename='game_1_describe_and_guess/images/guess.png') }}"
+                        alt="Guessing cat"
+                    >
                 </div>
             </div>
 
@@ -105,50 +180,57 @@
                 </div>
             </div>
 
-            <!-- 1. Great job! We've played all the cards (hidden by default) -->
             <div id="all-cards-done" class="all-cards-done" style="display: none;">
                 <p>Great job! We've played all the cards!</p>
             </div>
 
-            <!-- 2. Ann got 4 points this round! -->
-            <!-- Round result message (hidden by default) -->
             <div id="round-result" style="display: none;">
                 <h2 id="result-message"></h2>
             </div>
 
-            <!-- 3. Score table (hidden by default) -->
             <div id="score-table" style="display: none;">
                 <table id="results-table">
-                       <thead>
-                           <tr><th>Player</th><th>Total Score</th></tr>
-                       </thead>
-                        <tbody></tbody>
+                    <thead>
+                        <tr><th>Player</th><th>Total Score</th></tr>
+                    </thead>
+                    <tbody></tbody>
                 </table>
             </div>
 
-            <!-- 4. Waiting... -->
             <p id="waiting-host-message" style="display: none; font-size: 1rem; color: var(--accent); text-align: center; margin-top: 1rem;"></p>
 
-
             <button id="next-round-btn" style="display: none;">Next round</button>
-
-            <!-- New game & back buttons (shown when all cards are finished) -->
             <button id="new-game-btn" style="display: none;">New game</button>
             <button id="back-to-main-btn" style="display: none;">Back to the main page</button>
+        </div>
 
+        <!-- Screen 4: room not found error -->
+        <div id="screen-error" style="display: none;">
+            <h1>The room doesn't exist</h1>
+            <button id="goHomeBtn">Go to the main page</button>
+        </div>
 
+    </div>
 
-            <!-- Screen 4: room not found error -->
-            <div id="screen-error" style="display: none;">
-                <h1>The room doesn't exist</h1>
-                <button id="goHomeBtn">Go to the main page</button>
+    <div id="dng-restart-round-dialog" class="exit-dialog" aria-hidden="true">
+        <div class="exit-dialog-backdrop" id="dng-restart-round-dialog-backdrop"></div>
+        <div class="exit-dialog-panel" role="dialog" aria-labelledby="dng-restart-round-dialog-message">
+            <p id="dng-restart-round-dialog-message" class="exit-dialog-message">
+                Are you sure you want to start a new round?
+            </p>
+            <div class="exit-dialog-buttons">
+                <button type="button" id="dng-restart-round-cancel-btn" class="exit-btn exit-btn--stay">
+                    No, keep playing
+                </button>
+                <button type="button" id="dng-restart-round-confirm-btn" class="exit-btn exit-btn--confirm">
+                    Yes, start a new round
+                </button>
             </div>
-        </div>  <!-- End of screen-game -->
-    </div>  <!-- End of main-card -->
+        </div>
+    </div>
 
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <script src="{{ url_for('static', filename='common/player_name_edit.js') }}"></script>
     <script src="/static/game_1_describe_and_guess/game.js"></script>
-
 </body>
 </html>

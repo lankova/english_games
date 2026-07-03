@@ -120,11 +120,12 @@ window.PlayerNameEdit = (function () {
     }
 
     function keepInputCaretVisible(input) {
-        const pos = input.selectionStart ?? input.value.length;
-        if (pos === input.value.length) {
-            input.scrollLeft = input.scrollWidth;
+        if (input.scrollWidth <= input.clientWidth + 1) {
+            input.scrollLeft = 0;
             return;
         }
+
+        const pos = input.selectionStart ?? input.value.length;
         const style = window.getComputedStyle(input);
         const probe = document.createElement('span');
         probe.style.cssText = [
@@ -141,6 +142,19 @@ window.PlayerNameEdit = (function () {
         document.body.appendChild(probe);
         const caretX = probe.offsetWidth;
         probe.remove();
+
+        const textAlign = style.textAlign;
+        if (textAlign === 'center' && pos === input.value.length) {
+            const overflow = input.scrollWidth - input.clientWidth;
+            input.scrollLeft = Math.max(0, overflow / 2);
+            return;
+        }
+
+        if (pos === input.value.length) {
+            input.scrollLeft = input.scrollWidth;
+            return;
+        }
+
         if (caretX < input.scrollLeft) {
             input.scrollLeft = caretX;
         } else if (caretX - input.scrollLeft > input.clientWidth - 8) {
@@ -177,6 +191,13 @@ window.PlayerNameEdit = (function () {
             el._editMinWidth,
             Math.ceil(measureTextWidth(input, '0'.repeat(MAX_LEN)) + 4),
         );
+        const parent = el.parentElement;
+        if (parent) {
+            const parentCap = parent.clientWidth;
+            if (parentCap > 0) {
+                el._editMaxWidth = Math.min(el._editMaxWidth, parentCap);
+            }
+        }
         resizeEditContainer(el, input);
     }
 

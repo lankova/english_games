@@ -22,62 +22,73 @@
         </div>
 
         <!-- Screen 2: waiting room and game settings -->
-        <div id="screen-waiting" style="display: none;">
-            <div class="invite-link-container">
-                <p class="invite-link-title">Copy this link and send it to all players</p>
-                <div class="invite-link-row">
-                    <input id="invite-link-input" class="invite-link-input" type="text" readonly>
-                    <button id="copy-invite-btn" class="invite-link-copy-btn" type="button">Copy</button>
+        <div id="screen-waiting" class="spy-lobby-screen" style="display: none;">
+            <div class="spy-lobby-body">
+                <section class="lobby-players-panel">
+                    <h2 class="lobby-players-title">Players in the game</h2>
+                    <ul id="players-list" class="players-list-vertical"></ul>
+                    <img
+                        class="lobby-cat"
+                        src="{{ url_for('static', filename='common/images/orange_cat_waiting.png') }}"
+                        alt="Waiting cat"
+                    >
+                </section>
+
+                <form id="setup-form" class="setup-form">
+                    <h2 class="lobby-settings-title">Game settings</h2>
+
+                    <label>
+                        Number of spies
+                        <select id="setting-spy-count">
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="0">1 or 2 spies</option>
+                        </select>
+                    </label>
+
+                    <label class="setup-checkbox">
+                        <input type="checkbox" id="setting-extra-roles">
+                        Extra roles at the location
+                    </label>
+
+                    <label>
+                        Round length (minutes)
+                        <select id="setting-duration">
+                            <option value="6">6</option>
+                            <option value="7">7</option>
+                            <option value="8">8</option>
+                            <option value="9" selected>9</option>
+                            <option value="10">10</option>
+                            <option value="11">11</option>
+                            <option value="12">12</option>
+                            <option value="13">13</option>
+                            <option value="14">14</option>
+                            <option value="15">15</option>
+                        </select>
+                    </label>
+
+                    <label>
+                        Location set
+                        <select id="setting-location-set">
+                            <option value="modern_world">Modern world</option>
+                            <option value="myths">Myths</option>
+                        </select>
+                    </label>
+                </form>
+
+                <div class="invite-link-container">
+                    <p class="invite-link-title">Copy this link and send it to all players</p>
+                    <div class="invite-link-row">
+                        <input id="invite-link-input" class="invite-link-input" type="text" readonly>
+                        <button id="copy-invite-btn" class="invite-link-copy-btn" type="button">Copy</button>
+                    </div>
+                    <p id="copy-invite-status" class="invite-link-status"></p>
                 </div>
-                <p id="copy-invite-status" class="invite-link-status"></p>
+
+                <p id="lobby-error" class="name-error lobby-error"></p>
             </div>
 
-            <h2 class="lobby-players-title">Players in the game</h2>
-            <ul id="players-list" class="players-list-vertical"></ul>
-
-            <form id="setup-form" class="setup-form">
-                <label>
-                    Number of spies
-                    <select id="setting-spy-count">
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="0">1 or 2 spies</option>
-                    </select>
-                </label>
-
-                <label class="setup-checkbox">
-                    <input type="checkbox" id="setting-extra-roles">
-                    Extra roles at the location
-                </label>
-
-                <label>
-                    Round length (minutes)
-                    <select id="setting-duration">
-                        <option value="6">6</option>
-                        <option value="7">7</option>
-                        <option value="8">8</option>
-                        <option value="9" selected>9</option>
-                        <option value="10">10</option>
-                        <option value="11">11</option>
-                        <option value="12">12</option>
-                        <option value="13">13</option>
-                        <option value="14">14</option>
-                        <option value="15">15</option>
-                    </select>
-                </label>
-
-                <label>
-                    Location set
-                    <select id="setting-location-set">
-                        <option value="modern_world">Modern world</option>
-                        <option value="myths">Myths</option>
-                    </select>
-                </label>
-            </form>
-
-            <p id="lobby-error" class="name-error"></p>
-
-            <div class="startGame">
+            <div class="startGame spy-lobby-footer">
                 <button id="startGame" class="ok-button" type="button">Start the game</button>
             </div>
         </div>
@@ -275,6 +286,23 @@
             Restart round
         </button>
 
+    </div>
+
+    <div id="new-round-dialog" class="exit-dialog" aria-hidden="true">
+        <div class="exit-dialog-backdrop" id="new-round-dialog-backdrop"></div>
+        <div class="exit-dialog-panel" role="dialog" aria-labelledby="new-round-dialog-message">
+            <p id="new-round-dialog-message" class="exit-dialog-message">
+                Are you sure you want to start a new round?
+            </p>
+            <div class="exit-dialog-buttons">
+                <button type="button" id="new-round-cancel-btn" class="exit-btn exit-btn--stay">
+                    No, keep playing
+                </button>
+                <button type="button" id="new-round-confirm-btn" class="exit-btn exit-btn--confirm">
+                    Yes, start a new round
+                </button>
+            </div>
+        </div>
     </div>
 
     <div id="new-round-dialog" class="exit-dialog" aria-hidden="true">

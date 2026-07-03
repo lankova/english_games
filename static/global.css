@@ -281,8 +281,70 @@ Game links are styled as buttons for better UX. */
 }
 
 @media (max-width: 768px) {
+    :root {
+        --cat-hero-size: 200px;
+    }
+
+    .main-title {
+        font-size: 1.45rem;
+        letter-spacing: 1px;
+        padding-top: 0.35rem;
+        margin-bottom: 0.65rem;
+        line-height: 1.25;
+    }
+
+    .main-content {
+        margin-bottom: 0.5rem;
+    }
+
+    .subtitle {
+        font-size: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .links-container {
+        margin-bottom: 0.75rem;
+    }
+
+    .links-container a {
+        margin-bottom: 0.65rem;
+        padding: 0.65rem 1.1rem;
+    }
+
+    .cat-wrapper {
+        margin-top: 0.35rem;
+    }
+
+    .cat-image {
+        margin-bottom: 0.25rem;
+    }
+
     .contactme {
-        margin-top: 1rem;
+        margin-top: 0.35rem;
+        padding-bottom: 0.35rem;
+        font-size: 0.72rem;
+    }
+
+    .contactme-questions {
+        font-size: 0.85rem;
+        margin-bottom: 0.15rem;
+    }
+
+    .contactme-links {
+        gap: 0.05rem;
+    }
+
+    .contactme a {
+        line-height: 1.3;
+        word-break: break-all;
+    }
+
+    body:not(.page-game) .main-card {
+        min-height: 0;
+        height: auto;
+        max-height: var(--plate-h);
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
     }
 }
 
@@ -652,10 +714,157 @@ Game links are styled as buttons for better UX. */
 }
 
 /* ---- Guessing screen (non-explainer view) ---- */
-.guessing-screen {
+#message_non-explainers {
+    width: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
+}
+
+.guessing-screen {
+    width: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.75rem;
+    padding: 0.35rem 0 0.5rem;
+    box-sizing: border-box;
+}
+
+.guessing-screen-text {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    flex: 1 1 auto;
+    min-height: 0;
+    max-width: min(var(--card-max-w), 92vw);
+    padding: 0.25rem 0.75rem;
+}
+
+.dng-guessing-cat {
+    width: min(210px, 58vw);
+    height: auto;
+    margin-top: 0;
+    object-fit: contain;
+    flex-shrink: 0;
+    pointer-events: none;
+    user-select: none;
+}
+
+.page-game #screen-game:has(#message_non-explainers[style*="flex"]) {
+    justify-content: flex-start;
+    gap: 0.65rem;
+}
+
+.page-game #screen-game:has(#message_non-explainers[style*="flex"]) .dng-timer-block {
+    flex-shrink: 0;
+}
+
+.dng-timer-block {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    flex-shrink: 0;
+}
+
+.dng-timer-display {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+    background: var(--timer-bg);
+    border-radius: 16px;
+    padding: 0.35rem 0.55rem 0.35rem 0.75rem;
+    box-sizing: border-box;
+    max-width: 100%;
+}
+
+.dng-timer-display:has(#guessing-timer[style*="block"]) {
+    display: inline-flex;
+}
+
+.dng-timer-display .guessing-timer {
+    width: auto;
+    min-width: 2.5ch;
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    border-radius: 0;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+
+.dng-timer-controls {
+    display: flex;
+    flex-shrink: 0;
+    gap: 0.2rem;
+    align-items: center;
+}
+
+.dng-timer-controls .timer-icon-btn {
+    width: 2rem;
+    height: 2rem;
+}
+
+.dng-timer-controls .timer-icon-btn svg {
+    width: 1rem;
+    height: 1rem;
+}
+
+.dng-restart-round-btn {
+    position: fixed;
+    top: calc(1rem + 2.5rem + 0.85rem);
+    right: calc(1rem + 0.25rem);
+    z-index: 99;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    margin: 0;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    opacity: 0.22;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.dng-restart-round-btn:hover {
+    opacity: 0.45;
+    color: var(--text-secondary);
+}
+
+.dng-restart-round-btn:focus-visible {
+    outline: 1px solid color-mix(in srgb, var(--text-muted) 50%, transparent);
+    outline-offset: 2px;
+    opacity: 0.5;
+}
+
+.dng-restart-round-icon {
+    width: 1rem;
+    height: 1rem;
+    display: block;
+}
+
+body.light-theme .dng-restart-round-btn {
+    opacity: 0.18;
+}
+
+body.light-theme .dng-restart-round-btn:hover {
+    opacity: 0.38;
 }
 
 .guessing-timer-label {
@@ -668,9 +877,10 @@ Game links are styled as buttons for better UX. */
 }
 
 .guessing-explainer {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
+    line-height: 1.45;
     color: var(--text-secondary);
-    margin-top: 0;
+    margin: 0;
 }
 
 #explainer-name {
@@ -679,10 +889,11 @@ Game links are styled as buttons for better UX. */
 }
 
 .guessing-cta {
-    font-size: clamp(1.25rem, 5vw, 1.6rem);
+    font-size: clamp(1.35rem, 5.5vw, 1.75rem);
     font-weight: 700;
     color: var(--text);
-    margin-top: 0.25rem;
+    margin: 0;
+    letter-spacing: 0.02em;
 }
 
 
@@ -1064,6 +1275,7 @@ Game links are styled as buttons for better UX. */
         --plate-h: calc(100dvh - 2rem);
         --card-max-w: 300px;
         --card-vw: 88vw;
+        --cat-hero-size: 175px;
     }
 
     body {
@@ -1072,7 +1284,10 @@ Game links are styled as buttons for better UX. */
 
     .main-card {
         padding: 1.25rem 1rem;
-        overflow: hidden;
+    }
+
+    body:not(.page-game) .main-card {
+        overflow-y: auto;
     }
 
     /* Large tap targets on phone */
@@ -1118,6 +1333,13 @@ Game links are styled as buttons for better UX. */
     max-height: 96dvh;
 }
 
+/* Hide play UI while 3-2-1 countdown is active */
+.page-game #screen-game:has(#countdown[style*="block"]) .card-container,
+.page-game #screen-game:has(#countdown[style*="block"]) .action-buttons,
+.page-game #screen-game:has(#countdown[style*="block"]) .dng-timer-block {
+    display: none !important;
+}
+
 /* Round in progress: card or timer visible */
 .page-game #screen-game:has(.card-container[style*="flex"]),
 .page-game #screen-game:has(#guessing-timer[style*="block"]) {
@@ -1146,6 +1368,10 @@ Game links are styled as buttons for better UX. */
         font-size: 2rem;
     }
 
+    .dng-guessing-cat {
+        width: min(168px, 50vw);
+    }
+
     @media (max-width: 480px) {
         :root {
             --card-max-w: min(260px, 82vw);
@@ -1171,12 +1397,6 @@ Game links are styled as buttons for better UX. */
     }
 }
 
-
-@media (max-width: 768px) {
-    .main-title {
-        font-size: 2.5rem;
-    }
-}
 
 /* ===============================
    Spy in Ithaca - Game 2 Styles
@@ -2153,12 +2373,395 @@ body.light-theme .page-game .main-card:has(#screen-role[style*="flex"]) .spy-new
     margin-top: 0.5rem;
 }
 
+.lobby-players-title,
+.lobby-settings-title {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    text-align: center;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+/* ---------- Spy / D&G lobby (settings screen) ---------- */
+#screen-waiting.spy-lobby-screen {
+    flex: 1;
+    min-height: 0;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    align-self: stretch;
+    overflow: hidden;
+    padding-bottom: 0;
+    gap: 0;
+    text-align: center;
+}
+
+.spy-lobby-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding-bottom: 0.35rem;
+}
+
+.spy-lobby-body .invite-link-container {
+    width: 100%;
+    max-width: 360px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.spy-lobby-body .invite-link-status:not(.show) {
+    height: 0;
+    min-height: 0;
+    margin: 0;
+    overflow: hidden;
+}
+
+.lobby-players-panel {
+    position: relative;
+    width: 100%;
+    max-width: 360px;
+    padding: 0.7rem 1rem 0.75rem 1.2rem;
+    border-radius: 16px;
+    background: linear-gradient(
+        165deg,
+        rgba(244, 162, 97, 0.16) 0%,
+        rgba(255, 255, 255, 0.05) 45%,
+        rgba(255, 255, 255, 0.03) 100%
+    );
+    border: 1px solid color-mix(in srgb, var(--accent) 38%, var(--card-border));
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.08),
+        0 6px 20px rgba(0, 0, 0, 0.12);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.lobby-players-panel::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 14%;
+    bottom: 14%;
+    width: 4px;
+    border-radius: 0 4px 4px 0;
+    background: linear-gradient(to bottom, var(--accent), color-mix(in srgb, var(--accent) 55%, transparent));
+}
+
+body.light-theme .lobby-players-panel {
+    background: linear-gradient(
+        165deg,
+        rgba(212, 120, 47, 0.14) 0%,
+        rgba(255, 255, 255, 0.72) 50%,
+        rgba(255, 255, 255, 0.45) 100%
+    );
+    border-color: color-mix(in srgb, var(--accent) 30%, var(--card-border));
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.9),
+        0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.lobby-players-panel .players-list-vertical {
+    width: 100%;
+    max-height: min(10.5rem, 26dvh);
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0;
+}
+
+.lobby-players-panel .players-list-vertical li {
+    background: rgba(0, 0, 0, 0.22);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 0.35rem 0.75rem;
+    margin-bottom: 0.25rem;
+    font-size: 0.95rem;
+}
+
+.lobby-players-panel .players-list-vertical li:last-child {
+    margin-bottom: 0;
+}
+
+body.light-theme .lobby-players-panel .players-list-vertical li {
+    background: rgba(255, 255, 255, 0.82);
+    border-color: rgba(0, 0, 0, 0.07);
+}
+
+.lobby-players-panel .lobby-cat {
+    width: min(128px, 38vw);
+    height: auto;
+    margin-top: 0.35rem;
+    object-fit: contain;
+    flex-shrink: 0;
+    pointer-events: none;
+    user-select: none;
+}
+
+.page-game #screen-waiting.dng-lobby-screen .dng-lobby-players-panel {
+    min-height: auto;
+}
+
+.page-game .lobby-players-panel:has(.lobby-cat) .players-list-vertical {
+    min-height: 0;
+    max-height: min(8rem, 22dvh);
+}
+
+.spy-lobby-body .setup-form {
+    width: 100%;
+    max-width: 360px;
+    text-align: center;
+    align-items: center;
+    gap: 0.7rem;
+    flex-shrink: 0;
+}
+
+.spy-lobby-body .setup-form .lobby-settings-title {
+    width: 100%;
+    margin-bottom: 0;
+    font-size: 0.95rem;
+}
+
+.spy-lobby-body .setup-form label {
+    width: 100%;
+    text-align: center;
+}
+
+.spy-lobby-body .setup-form label.setup-checkbox {
+    justify-content: center;
+}
+
+.spy-lobby-body .setup-form select {
+    max-width: 220px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.spy-lobby-body .lobby-error {
+    width: 100%;
+    max-width: 360px;
+    margin: 0;
+    text-align: center;
+}
+
+.spy-lobby-footer {
+    flex-shrink: 0;
+    align-self: stretch;
+    width: 100%;
+    max-width: none;
+    margin-top: auto;
+    padding: 0.65rem 0 0.25rem;
+    border-top: 1px solid var(--card-border);
+    background: linear-gradient(
+        to top,
+        color-mix(in srgb, var(--card-bg) 95%, transparent) 50%,
+        transparent
+    );
+}
+
+.spy-lobby-footer #startGame {
+    display: block;
+    width: 100%;
+    max-width: 360px;
+    box-sizing: border-box;
+    margin: 0 auto;
+}
+
+.lobby-waiting-message {
+    width: 100%;
+    max-width: 360px;
+    margin: 0 auto;
+    padding: 0.65rem 1rem;
+    font-size: 1rem;
+    line-height: 1.35;
+    color: var(--accent);
+    text-align: center;
+    box-sizing: border-box;
+}
+
+#screen-waiting.spy-lobby-screen .players-list-vertical {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+}
+
+#screen-waiting.spy-lobby-screen #players-list {
+    margin: 0;
+}
+
+.page-game #screen-waiting.dng-lobby-screen .spy-lobby-footer #startGame {
+    width: auto;
+    min-width: min(280px, 100%);
+    max-width: 400px;
+    margin: 0 auto;
+    padding-left: 2rem;
+    padding-right: 2rem;
+}
+
+.page-game #screen-waiting.dng-lobby-screen .spy-lobby-footer .lobby-waiting-message {
+    max-width: 400px;
+    margin: 0;
+    padding: 0.35rem 1rem 0;
+}
+
+/* D&G lobby: settings centered between players and cat; list grows before scrolling */
+.page-game #screen-waiting.dng-lobby-screen {
+    padding-top: 0.85rem;
+    flex: 1;
+    min-height: 0;
+}
+
+.page-game #screen-waiting.dng-lobby-screen .spy-lobby-body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    gap: 0;
+    padding-bottom: 0;
+}
+
+.page-game #screen-waiting.dng-lobby-screen .dng-lobby-players-panel {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 0.6rem 0.9rem 0.75rem 1.05rem;
+    gap: 0.45rem;
+    margin-bottom: 0;
+}
+
+.page-game #screen-waiting.dng-lobby-screen .dng-lobby-spacer {
+    flex: 1 1 0;
+    min-height: var(--dng-spacer-min, 0.65rem);
+    width: 100%;
+    pointer-events: none;
+}
+
+.page-game #screen-waiting.dng-lobby-screen .dng-lobby-middle {
+    flex: 0 0 auto;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    box-sizing: border-box;
+}
+
+.page-game #screen-waiting.dng-lobby-screen .players-list-vertical {
+    flex: 1 1 auto;
+    min-height: var(--dng-list-min-height, 5.75rem);
+    overflow-y: hidden;
+}
+
+.page-game #screen-waiting.dng-lobby-screen.dng-lobby-players-scroll .players-list-vertical {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.page-game #screen-waiting.dng-lobby-screen .players-list-vertical li {
+    padding: 0.28rem 0.65rem;
+    margin-bottom: 0.18rem;
+    font-size: 0.9rem;
+    line-height: 1.25;
+}
+
+.page-game #screen-waiting.dng-lobby-screen .spy-lobby-body .setup-form {
+    gap: 0.55rem;
+    margin: 0;
+}
+
+.page-game #screen-waiting.dng-lobby-screen .spy-lobby-body .invite-link-container {
+    margin: 0;
+}
+
+.page-game #screen-waiting.dng-lobby-screen .invite-link-title {
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.page-game #screen-waiting.dng-lobby-screen .spy-lobby-body .lobby-error {
+    margin-top: 0;
+}
+
+.page-game #screen-waiting.dng-lobby-screen .spy-lobby-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    padding: 0.5rem 0.5rem 0.35rem;
+    border-top: none;
+    background: transparent;
+}
+
+.page-game #screen-waiting.dng-lobby-screen .dng-lobby-cat {
+    width: min(88px, 24vw);
+    height: auto;
+    margin: 0;
+    object-fit: contain;
+    flex-shrink: 0;
+    pointer-events: none;
+    user-select: none;
+}
+
+.page-game #screen-waiting.dng-lobby-screen .spy-lobby-footer #startGame {
+    margin: 0;
+}
+
+@media (min-width: 481px) {
+    .page-game #screen-waiting.dng-lobby-screen .dng-lobby-cat {
+        width: min(142px, 30vw);
+    }
+
+    .page-game #screen-waiting.dng-lobby-screen .spy-lobby-footer {
+        gap: 0.55rem;
+        padding: 0.6rem 0.5rem 0.4rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .page-game .lobby-players-panel .lobby-cat {
+        width: min(96px, 32vw);
+        margin-top: 0.2rem;
+    }
+
+    .page-game #screen-waiting.dng-lobby-screen {
+        padding-top: 0.65rem;
+    }
+
+    .page-game #screen-waiting.dng-lobby-screen .dng-lobby-cat {
+        width: min(80px, 22vw);
+    }
+}
+
 .lobby-players-title {
     margin: 1rem 0 0.5rem;
     font-size: 1.15rem;
     font-weight: 700;
     color: var(--text-secondary);
     text-align: center;
+}
+
+/* legacy selector - overridden inside .lobby-players-panel */
+.lobby-players-panel .lobby-players-title {
+    margin: 0;
+    font-size: 1.05rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
 }
 
 .setup-form {
@@ -2412,11 +3015,23 @@ body.light-theme .setup-form label.setup-checkbox input[type="checkbox"]:checked
     box-sizing: border-box;
     vertical-align: top;
     transition: width 0.15s ease;
-    overflow: visible;
+    overflow: hidden;
+    max-width: 100%;
+    text-align: center;
 }
 
-#players-list li.player-name-editing {
+#players-list li.player-name-editing,
+.players-list-vertical li.player-name-editing {
     list-style: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+#results-table td.player-name-editing {
+    text-align: center;
 }
 
 .player-name-edit-input {
@@ -2437,10 +3052,11 @@ body.light-theme .setup-form label.setup-checkbox input[type="checkbox"]:checked
     font-weight: inherit;
     line-height: inherit;
     letter-spacing: inherit;
-    text-align: start;
+    text-align: center;
     color: inherit;
     background: transparent;
     box-sizing: border-box;
+    overflow: hidden;
 }
 
 .player-name-edit-input:focus {

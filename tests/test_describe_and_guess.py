@@ -7,6 +7,16 @@ import pytest
 from app import app, rooms_game1 as rooms, socketio
 
 
+def _start_round(client, room_code, explainer='Alice', word_set='easy'):
+    client.emit('start_game', {
+        'room_code': room_code,
+        'explainer': explainer,
+        'word_set': word_set,
+    })
+    time.sleep(0.05)
+    return client.get_received()
+
+
 # =========
 # FIXTURES
 # =========
@@ -192,25 +202,23 @@ class TestDnGRoomManagement:
 class TestDnGGameFlow:
 
     @allure.story("Start the game")
-    @allure.title("Host starts game - should broadcast game_started event")
+    @allure.title("Host starts round - should broadcast round_started event")
     @allure.severity(allure.severity_level.CRITICAL)
     def test_host_starts_game(self, socket_client):
         socket_client.emit('create_room', {'name': 'Alice'})
         room_data = socket_client.get_received()[0]['args'][0]
         room_code = room_data['room_code']
 
-        # Clear room_created event
         socket_client.get_received()
 
-        socket_client.emit('start_game', {'room_code': room_code})
-        received = socket_client.get_received()
+        received = _start_round(socket_client, room_code)
         event_names = [e['name'] for e in received]
 
-        assert 'game_started' in event_names, f"Expected 'game_started' in {event_names}"
+        assert 'round_started' in event_names, f"Expected 'round_started' in {event_names}"
 
-        # Verify game_started flag in rooms dict
         from app import rooms_game1 as rooms
         assert rooms[room_code]['game_started'] is True
+        assert rooms[room_code]['explainer'] == 'Alice'
 
     @allure.story("Block non-host from starting")
     @allure.title("Non-host tries to start game - should return error")
@@ -247,14 +255,7 @@ class TestDnGGameFlow:
         room_data = socket_client.get_received()[0]['args'][0]
         room_code = room_data['room_code']
 
-        socket_client.emit('start_game', {'room_code': room_code})
-        socket_client.get_received()
-
-        socket_client.emit('become_explainer', {
-            'room_code': room_code,
-            'player_name': 'Alice'
-        })
-        received = socket_client.get_received()
+        received = _start_round(socket_client, room_code)
 
         assert len(received) > 0, "Expected round_started event"
         assert received[0]['name'] == 'round_started', f"Expected 'round_started', got '{received[0]['name']}'"
@@ -267,24 +268,15 @@ class TestDnGGameFlow:
         assert rooms[room_code]['round_active'] is True
 
     @allure.story("Late join during round")
-    @allure.title("Player joining mid-round - should get game_started and round_started with late_join flag")
+    @allure.title("Player joining mid-round - should get round_started with late_join flag")
     @allure.severity(allure.severity_level.NORMAL)
     def test_late_join_during_round(self, socket_client):
-        # Host creates room and starts round
         socket_client.emit('create_room', {'name': 'Alice'})
         room_data = socket_client.get_received()[0]['args'][0]
         room_code = room_data['room_code']
 
-        socket_client.emit('start_game', {'room_code': room_code})
-        socket_client.get_received()
+        _start_round(socket_client, room_code)
 
-        socket_client.emit('become_explainer', {
-            'room_code': room_code,
-            'player_name': 'Alice'
-        })
-        socket_client.get_received()
-
-        # Late player joins
         guest = socketio.test_client(app)
         guest.emit('join_room', {
             'room_code': room_code,
@@ -294,7 +286,6 @@ class TestDnGGameFlow:
         received = guest.get_received()
         event_names = [e['name'] for e in received]
 
-        assert 'game_started' in event_names, f"Expected 'game_started' in {event_names}"
         assert 'round_started' in event_names, f"Expected 'round_started' in {event_names}"
 
         round_event = next(e for e in received if e['name'] == 'round_started')
@@ -311,8 +302,8 @@ class TestDnGGameFlow:
 @allure.feature("Multi-Client Scenarios")
 class TestDnGMultiClient:
 
-    @allure.story("Host and guest receive game_started")
-    @allure.title("Both players should get game_started when host starts")
+    @allure.story("Host and guest receive round_started")
+    @allure.title("Both players should get round_started when host starts")
     @allure.severity(allure.severity_level.CRITICAL)
     def test_both_receive_game_started(self, host_client, guest_client_factory):
         host, room_code, _ = host_client
@@ -329,18 +320,14 @@ class TestDnGMultiClient:
         # Clear host's buffer before starting
         host.get_received()
 
-        # Host starts game
-        host.emit('start_game', {'room_code': room_code})
-
-        # Check host received game_started
-        host_received = host.get_received()
+        # Host starts round
+        host_received = _start_round(host, room_code)
         host_events = [e['name'] for e in host_received]
-        assert 'game_started' in host_events, "Host should receive game_started"
+        assert 'round_started' in host_events, "Host should receive round_started"
 
-        # Check guest received game_started
         guest_received = guest.get_received()
         guest_events = [e['name'] for e in guest_received]
-        assert 'game_started' in guest_events, "Guest should receive game_started"
+        assert 'round_started' in guest_events, "Guest should receive round_started"
 
         # Verify game state
         from app import rooms_game1 as rooms
@@ -581,13 +568,61 @@ class TestDnGTimer:
         socket_client.get_received()
 
         socket_client.emit('pause_timer', {'room_code': room_code, 'time_left': 45})
+        socket_client.get_received()
+
         socket_client.emit('resume_timer', {'room_code': room_code})
         received = socket_client.get_received()
 
-        assert len(received) > 0, "Expected timer_update event after resume"
-        assert received[0]['name'] == 'timer_update', \
-            f"Expected 'timer_update', got '{received[0]['name']}'"
-        assert received[0]['args'][0]['time_left'] == 45, "Should resume from paused time"
+        timer_updates = [e for e in received if e['name'] == 'timer_update']
+        assert len(timer_updates) > 0, "Expected timer_update event after resume"
+        assert timer_updates[0]['args'][0]['time_left'] == 45, "Should resume from paused time"
+
+    @allure.story("Pause broadcast")
+    @allure.title("Pause timer - should broadcast timer_paused to the room")
+    @allure.severity(allure.severity_level.NORMAL)
+    def test_pause_timer_broadcast(self, socket_client):
+        socket_client.emit('create_room', {'name': 'Alice'})
+        room_data = socket_client.get_received()[0]['args'][0]
+        room_code = room_data['room_code']
+
+        _start_round(socket_client, room_code)
+        socket_client.get_received()
+
+        socket_client.emit('pause_timer', {
+            'room_code': room_code,
+            'time_left': 45,
+        })
+        received = socket_client.get_received()
+        paused_events = [e for e in received if e['name'] == 'timer_paused']
+        assert len(paused_events) > 0, "Expected timer_paused broadcast"
+        assert paused_events[0]['args'][0]['time_left'] == 45
+
+    @allure.story("Restart round early")
+    @allure.title("Restart round - should add current round score and show scoreboard")
+    @allure.severity(allure.severity_level.NORMAL)
+    def test_restart_round(self, socket_client):
+        socket_client.emit('create_room', {'name': 'Alice'})
+        room_data = socket_client.get_received()[0]['args'][0]
+        room_code = room_data['room_code']
+
+        _start_round(socket_client, room_code)
+        socket_client.emit('start_timer', {'room_code': room_code})
+        socket_client.get_received()
+
+        from app import rooms_game1 as rooms
+        rooms[room_code]['round_score'] = 3
+
+        socket_client.emit('dng_restart_round', {'room_code': room_code})
+        received = socket_client.get_received()
+        scoreboard_events = [e for e in received if e['name'] == 'scoreboard_update']
+        assert len(scoreboard_events) > 0, "Expected scoreboard_update after restart"
+
+        data = scoreboard_events[0]['args'][0]
+        assert data['last_round']['player'] == 'Alice'
+        assert data['last_round']['score'] == 3
+        assert rooms[room_code]['players']['Alice'] == 3
+        assert rooms[room_code]['round_ended'] is True
+        assert rooms[room_code]['explainer'] is None
 
     @allure.story("Round timeout")
     @allure.title("Timer expires - should emit round_timeout and reset room state")
