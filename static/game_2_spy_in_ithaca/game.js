@@ -9,6 +9,8 @@ let myRole = null;
 let gameSettings = { location_set: 'modern_world' };
 let locationsData = null;
 let playersListCache = [];
+let roomHostName = null;
+let lobbyKickMode = false;
 let localMarkedLocations = new Set();
 let localCrossedPlayers = new Set();
 
@@ -155,6 +157,89 @@ function fillScoreboardTable(scoreboard) {
 }
 
 
+function isRoomHost() {
+    if (roomHostName && playerName && roomHostName === playerName) return true;
+    if (playerName && playersListCache.length > 0 && playersListCache[0] === playerName) {
+        return true;
+    }
+    return false;
+}
+
+function isBotPlayer(name) {
+    return name === 'bot 1' || name === 'bot 2';
+}
+
+function applyRoomHostName(hostName) {
+    if (hostName) {
+        roomHostName = hostName;
+        return;
+    }
+    if (playerName && playersListCache.length > 0 && playersListCache[0] === playerName) {
+        roomHostName = playerName;
+    }
+}
+
+let lobbyMinPlayersPromptTimer = null;
+const LOBBY_MIN_PLAYERS_PROMPT_MS = 15000;
+
+function clearLobbyMinPlayersPrompt() {
+    if (lobbyMinPlayersPromptTimer) {
+        clearTimeout(lobbyMinPlayersPromptTimer);
+        lobbyMinPlayersPromptTimer = null;
+    }
+    const startBtn = document.getElementById('startGame');
+    const botsBtn = document.getElementById('startWithBots');
+    if (startBtn) startBtn.hidden = false;
+    if (botsBtn) {
+        botsBtn.hidden = true;
+        botsBtn.classList.remove('spy-start-bots-btn--active');
+    }
+}
+
+function showLobbyMinPlayersPrompt() {
+    clearLobbyMinPlayersPrompt();
+    showLobbyError('Need at least 3 players.');
+
+    const startBtn = document.getElementById('startGame');
+    const botsBtn = document.getElementById('startWithBots');
+    if (isRoomHost() && startBtn && botsBtn) {
+        startBtn.hidden = true;
+        botsBtn.hidden = false;
+        botsBtn.classList.add('spy-start-bots-btn--active');
+    }
+
+    lobbyMinPlayersPromptTimer = setTimeout(() => {
+        lobbyMinPlayersPromptTimer = null;
+        showLobbyError('');
+        clearLobbyMinPlayersPrompt();
+    }, LOBBY_MIN_PLAYERS_PROMPT_MS);
+}
+
+function setLobbyKickMode(enabled) {
+    lobbyKickMode = Boolean(enabled);
+    const panel = document.querySelector('#screen-waiting .lobby-players-panel');
+    if (panel) panel.classList.toggle('lobby-kick-mode', lobbyKickMode);
+    renderWaitingPlayers(playersListCache);
+}
+
+function toggleLobbyKickMode() {
+    if (!isRoomHost()) return;
+    setLobbyKickMode(!lobbyKickMode);
+}
+
+function createKickButton(name) {
+    const kickBtn = document.createElement('button');
+    kickBtn.type = 'button';
+    kickBtn.className = 'player-kick-btn';
+    kickBtn.setAttribute('aria-label', `Remove ${name}`);
+    kickBtn.textContent = '\u00d7';
+    kickBtn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        emitWithPlayer('spy_kick_player', { target_name: name });
+    });
+    return kickBtn;
+}
+
 function getRenameOptions() {
     return {
         ownName: playerName,
@@ -167,6 +252,7 @@ function getRenameOptions() {
 function applyLocalPlayerRename(oldName, newName) {
     if (oldName !== playerName) return;
     playerName = newName;
+    if (roomHostName === oldName) roomHostName = newName;
     savePlayerSession();
     const input = document.getElementById('playerName');
     if (input) input.value = newName;
@@ -226,8 +312,14 @@ function renderWaitingPlayers(names) {
     const ul = document.getElementById('players-list');
     if (!ul) return;
     ul.innerHTML = '';
+    const showKick = lobbyKickMode && isRoomHost();
     names.forEach((name) => {
-        ul.appendChild(PlayerNameEdit.createNameLi(name, getRenameOptions()));
+        const li = PlayerNameEdit.createNameLi(name, getRenameOptions());
+        if (showKick && name !== playerName) {
+            li.classList.add('player-list-item-kickable');
+            li.insertBefore(createKickButton(name), li.firstChild);
+        }
+        ul.appendChild(li);
     });
 }
 
@@ -257,9 +349,35 @@ function renderGamePlayers(names) {
 
 function updatePlayersEverywhere(names) {
     playersListCache = Array.isArray(names) ? names : [];
+    applyRoomHostName(null);
     renderWaitingPlayers(playersListCache);
     renderGamePlayers(playersListCache);
     populateVoteNominateSelect(playersListCache);
+    syncSpyLobbyScroll();
+}
+
+function syncSpyLobbyScroll() {
+    const lobby = document.getElementById('screen-waiting');
+    if (!lobby || lobby.classList.contains('dng-lobby-screen')) return;
+    if (lobby.style.display !== 'flex') return;
+
+    const list = document.getElementById('players-list');
+    if (list) {
+        list.style.maxHeight = '';
+        list.style.overflowY = '';
+    }
+    lobby.classList.remove('spy-lobby-players-scroll');
+
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            const body = lobby.querySelector('.spy-lobby-body');
+            if (!body) return;
+            lobby.classList.toggle(
+                'spy-lobby-scroll',
+                body.scrollHeight > body.clientHeight + 1,
+            );
+        });
+    });
 }
 
 function applySetupUIFromSettings() {
@@ -276,6 +394,52 @@ function applySetupUIFromSettings() {
         durationEl.value = String(minutes);
     }
     if (setEl && s.location_set) setEl.value = s.location_set;
+    syncAllSpyStepperLabels();
+}
+
+const SPY_SETTING_STEPPER_IDS = [
+    'setting-spy-count',
+    'setting-duration',
+    'setting-location-set',
+];
+
+function syncSpyStepperLabel(selectId) {
+    const select = document.getElementById(selectId);
+    const stepper = document.querySelector(`.spy-setting-stepper[data-for="${selectId}"]`);
+    if (!select || !stepper) return;
+    const label = stepper.querySelector('.spy-stepper-label');
+    if (label) {
+        label.textContent = select.options[select.selectedIndex]?.text || '';
+    }
+}
+
+function syncAllSpyStepperLabels() {
+    SPY_SETTING_STEPPER_IDS.forEach(syncSpyStepperLabel);
+}
+
+function stepSpySetting(selectId, delta) {
+    const select = document.getElementById(selectId);
+    if (!select || select.options.length === 0) return;
+    const nextIndex = (select.selectedIndex + delta + select.options.length) % select.options.length;
+    select.selectedIndex = nextIndex;
+    syncSpyStepperLabel(selectId);
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+function initSpySettingSteppers() {
+    SPY_SETTING_STEPPER_IDS.forEach((selectId) => {
+        syncSpyStepperLabel(selectId);
+        const stepper = document.querySelector(`.spy-setting-stepper[data-for="${selectId}"]`);
+        if (!stepper) return;
+        stepper.querySelector('.spy-stepper-prev')?.addEventListener('click', (event) => {
+            event.preventDefault();
+            stepSpySetting(selectId, -1);
+        });
+        stepper.querySelector('.spy-stepper-next')?.addEventListener('click', (event) => {
+            event.preventDefault();
+            stepSpySetting(selectId, 1);
+        });
+    });
 }
 
 function showLobbyError(message) {
@@ -293,10 +457,13 @@ function showLobbyError(message) {
 function openLobbyScreen() {
     hideAllScreens();
     applySetupUIFromSettings();
+    clearLobbyMinPlayersPrompt();
     showLobbyError('');
+    setLobbyKickMode(false);
     document.getElementById('screen-waiting').style.display = 'flex';
     updateNewRoundButtonVisibility();
     completeSessionRestoreIfPending();
+    syncSpyLobbyScroll();
 }
 
 let cachedVoteBtnWidth = 0;
@@ -1020,6 +1187,7 @@ loadLocationsJson().catch((err) => console.error('Failed to load locations:', er
 function enterWaitingRoom(data) {
     currentRoomCode = data.room_code;
     if (data.settings) gameSettings = data.settings;
+    applyRoomHostName(data.host_name);
     window.history.pushState({}, '', `/spy-in-ithaca/${currentRoomCode}`);
     updateInviteLinkUI();
     updatePlayersEverywhere(data.players);
@@ -1049,6 +1217,7 @@ function restoreScreenForPhase(phase) {
 socket.on('spy_room_created', (data) => {
     currentRoomCode = data.room_code;
     if (data.settings) gameSettings = data.settings;
+    applyRoomHostName(data.host_name);
     window.history.pushState({}, '', `/spy-in-ithaca/${currentRoomCode}`);
     updateInviteLinkUI();
     updatePlayersEverywhere(data.players);
@@ -1061,7 +1230,20 @@ socket.on('spy_room_created', (data) => {
 });
 
 socket.on('spy_player_joined', (data) => {
+    applyRoomHostName(data.host_name);
     updatePlayersEverywhere(data.players);
+});
+
+socket.on('spy_player_kicked', (data) => {
+    if (data.player === playerName) {
+        clearPlayerSession();
+        currentRoomCode = null;
+        hideAllScreens();
+        const err = document.getElementById('name-error');
+        err.textContent = 'You were removed from the game.';
+        err.classList.add('show');
+        document.getElementById('screen-name').style.display = 'flex';
+    }
 });
 
 socket.on('spy_player_renamed', (data) => {
@@ -1270,6 +1452,35 @@ socket.on('spy_room_exists', () => {
 
 // ---------- Button handlers (send to server) ----------
 
+const spyPlayerNameInput = document.getElementById('playerName');
+
+function clampSpyPlayerNameInput() {
+    if (!spyPlayerNameInput) return;
+    if (spyPlayerNameInput.value.length <= PlayerNameEdit.MAX_LEN) return;
+    const pos = spyPlayerNameInput.selectionStart;
+    spyPlayerNameInput.value = spyPlayerNameInput.value.slice(0, PlayerNameEdit.MAX_LEN);
+    const newPos = Math.min(typeof pos === 'number' ? pos : PlayerNameEdit.MAX_LEN, PlayerNameEdit.MAX_LEN);
+    spyPlayerNameInput.setSelectionRange(newPos, newPos);
+}
+
+if (spyPlayerNameInput) {
+    spyPlayerNameInput.addEventListener('beforeinput', (e) => {
+        if (e.inputType && e.inputType.startsWith('delete')) return;
+        const next = (
+            spyPlayerNameInput.value.slice(0, spyPlayerNameInput.selectionStart ?? 0)
+            + (e.data ?? '')
+            + spyPlayerNameInput.value.slice(spyPlayerNameInput.selectionEnd ?? 0)
+        );
+        if (next.length > PlayerNameEdit.MAX_LEN) {
+            e.preventDefault();
+        }
+    });
+    spyPlayerNameInput.addEventListener('input', () => {
+        clampSpyPlayerNameInput();
+        document.getElementById('name-error').classList.remove('show');
+    });
+}
+
 document.getElementById('submit_name_btn').addEventListener('click', () => {
     const nameError = document.getElementById('name-error');
     nameError.classList.remove('show');
@@ -1296,23 +1507,47 @@ document.getElementById('submit_name_btn').addEventListener('click', () => {
             name: playerName,
         });
     } else {
+        roomHostName = playerName;
         socket.emit('spy_create_room', { name: playerName });
     }
 });
 
 document.getElementById('startGame').addEventListener('click', () => {
     if (!currentRoomCode) return;
+    clearLobbyMinPlayersPrompt();
     showLobbyError('');
     const minPlayers = getMinPlayersToStart();
     if (playersListCache.length < minPlayers) {
-        showLobbyError(`Need at least ${minPlayers} players to start the game.`);
+        showLobbyMinPlayersPrompt();
         return;
     }
     socket.emit('spy_start_game', {
         room_code: currentRoomCode,
+        player_name: playerName,
         ...collectSettingsPayload(),
     });
 });
+
+document.getElementById('startWithBots').addEventListener('click', () => {
+    if (!currentRoomCode || !isRoomHost()) return;
+    clearLobbyMinPlayersPrompt();
+    showLobbyError('');
+    socket.emit('spy_start_with_bots', {
+        room_code: currentRoomCode,
+        player_name: playerName,
+        ...collectSettingsPayload(),
+    });
+});
+
+function handleSpyLobbyCatClick(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    const lobby = document.getElementById('screen-waiting');
+    if (!lobby || lobby.style.display !== 'flex') return;
+    toggleLobbyKickMode();
+}
+
+document.getElementById('spy-lobby-cat')?.addEventListener('click', handleSpyLobbyCatClick);
 
 ['setting-spy-count', 'setting-extra-roles', 'setting-duration', 'setting-location-set'].forEach((id) => {
     document.getElementById(id).addEventListener('change', () => {
@@ -1457,6 +1692,10 @@ document.getElementById('goHomeBtn').addEventListener('click', () => {
 // Theme toggle (shared with other game pages)
 function updateLobbyCatImage(isLight) {
     document.querySelectorAll('.lobby-cat').forEach((lobbyCat) => {
+        if (lobbyCat.id === 'spy-lobby-cat') {
+            lobbyCat.src = '/static/common/images/orange_cat_waiting.png';
+            return;
+        }
         lobbyCat.src = isLight
             ? '/static/common/images/orange_cat_light.png'
             : '/static/common/images/orange_cat_waiting.png';
@@ -1474,5 +1713,7 @@ themeToggle.addEventListener('click', () => {
     updateLobbyCatImage(isLight);
 });
 updateLobbyCatImage(document.body.classList.contains('light-theme'));
+initSpySettingSteppers();
 
+window.addEventListener('resize', syncSpyLobbyScroll);
 window.addEventListener('resize', syncRestartRoundButtonWidth);

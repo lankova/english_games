@@ -2514,11 +2514,6 @@ body.light-theme .lobby-players-panel .players-list-vertical li {
     min-height: auto;
 }
 
-.page-game .lobby-players-panel:has(.lobby-cat) .players-list-vertical {
-    min-height: 0;
-    max-height: min(8rem, 22dvh);
-}
-
 .spy-lobby-body .setup-form {
     width: 100%;
     max-width: 360px;
@@ -2571,12 +2566,148 @@ body.light-theme .lobby-players-panel .players-list-vertical li {
     );
 }
 
-.spy-lobby-footer #startGame {
+.spy-lobby-footer #startGame,
+.spy-lobby-footer .spy-start-bots-btn {
     display: block;
     width: 100%;
     max-width: 360px;
     box-sizing: border-box;
     margin: 0 auto;
+}
+
+.spy-lobby-footer #startGame[hidden],
+.spy-lobby-footer .spy-start-bots-btn[hidden] {
+    display: none;
+}
+
+.spy-lobby-footer .spy-start-bots-btn.spy-start-bots-btn--active {
+    background: linear-gradient(135deg, #a8e6a1, #7fd683);
+    border: 2px solid #6bb872;
+    color: #1e4620;
+    font-weight: 600;
+}
+
+.spy-lobby-footer .spy-start-bots-btn.spy-start-bots-btn--active:hover {
+    background: linear-gradient(135deg, #b8efaf, #8fe08a);
+}
+
+.spy-lobby-footer .lobby-error {
+    width: 100%;
+    max-width: 360px;
+    min-height: 2.35rem;
+    margin: 0.35rem auto 0;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+.spy-lobby-footer .lobby-error:not(.show) {
+    margin: 0.35rem auto 0;
+    min-height: 2.35rem;
+    height: auto;
+    overflow: hidden;
+    visibility: hidden;
+}
+
+/* Spy lobby (not D&G): compact layout, cat in panel corner */
+.page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .spy-lobby-body {
+    gap: 0.5rem;
+    overflow-y: hidden;
+    padding-bottom: 0.15rem;
+}
+
+.page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen).spy-lobby-scroll .spy-lobby-body {
+    overflow-y: auto;
+}
+
+.page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .lobby-players-panel {
+    overflow: visible;
+    padding-bottom: 0.45rem;
+}
+
+.page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .lobby-players-panel .lobby-cat {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: min(68px, 20vw);
+    height: auto;
+    margin: 0;
+    z-index: 5;
+    transform: translate(12%, 18%);
+    pointer-events: auto;
+    cursor: pointer;
+    touch-action: manipulation;
+    user-select: none;
+}
+
+.page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .lobby-players-panel.lobby-kick-mode .lobby-cat {
+    filter: drop-shadow(0 0 0.35rem color-mix(in srgb, var(--accent) 70%, transparent));
+}
+
+.page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .players-list-vertical li.player-list-item-kickable {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.3rem;
+    padding-left: 0.1rem;
+}
+
+.page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .player-kick-btn {
+    flex: 0 0 auto;
+    width: 1.2rem;
+    height: 1.2rem;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: #e53935;
+    font-size: 1.15rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .players-list-vertical li.player-list-item-kickable .player-name-row,
+.page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .players-list-vertical li.player-list-item-kickable:not(.player-name-own) {
+    flex: 1 1 auto;
+    text-align: center;
+}
+
+.page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .lobby-players-panel .players-list-vertical {
+    width: 100%;
+    max-height: none;
+    overflow-y: visible;
+    padding-right: 0.15rem;
+    padding-bottom: 0.15rem;
+}
+
+.page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .spy-lobby-body .setup-form {
+    gap: 0.55rem;
+    margin: 0;
+}
+
+.page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .spy-lobby-body .invite-link-container {
+    margin: 0;
+}
+
+.page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .spy-lobby-body::after {
+    content: '';
+    flex: 1 1 auto;
+    min-height: 1.75rem;
+    width: 100%;
+}
+
+.page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .spy-setting-control {
+    flex: 0 0 auto;
+}
+
+.page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .spy-setting-stepper {
+    display: none;
+}
+
+.page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .spy-lobby-footer {
+    padding: 2rem 0.5rem 1.15rem;
+    border-top: none;
+    background: none;
 }
 
 .lobby-waiting-message {
@@ -2723,6 +2854,13 @@ body.light-theme .lobby-players-panel .players-list-vertical li {
 }
 
 @media (min-width: 481px) {
+    .page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .lobby-players-panel .lobby-cat {
+        width: min(84px, 24vw);
+        right: 0;
+        bottom: 0;
+        transform: translate(10%, 15%);
+    }
+
     .page-game #screen-waiting.dng-lobby-screen .dng-lobby-cat {
         width: min(142px, 30vw);
     }
@@ -2737,6 +2875,141 @@ body.light-theme .lobby-players-panel .players-list-vertical li {
     .page-game .lobby-players-panel .lobby-cat {
         width: min(96px, 32vw);
         margin-top: 0.2rem;
+    }
+
+    .page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) {
+        padding-top: 0.65rem;
+        padding-bottom: 0.85rem;
+    }
+
+    .page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .spy-lobby-body::after {
+        min-height: 2.75rem;
+    }
+
+    .page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .spy-lobby-body {
+        gap: 0.35rem;
+    }
+
+    .page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .lobby-players-panel {
+        padding: 0.5rem 0.8rem 0.45rem 0.95rem;
+        margin-bottom: 0.7rem;
+    }
+
+    .page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .lobby-players-panel .lobby-cat {
+        width: min(60px, 18vw);
+        right: 0;
+        bottom: 0;
+        transform: translate(10%, 15%);
+        margin-top: 0;
+        z-index: 5;
+        pointer-events: auto;
+        touch-action: manipulation;
+    }
+
+    .page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .spy-setting-control {
+        flex: 0 0 auto;
+        position: relative;
+    }
+
+    .page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .spy-setting-select {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        margin: 0;
+        padding: 0;
+        opacity: 0;
+        pointer-events: none;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    .page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .spy-setting-stepper {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.15rem;
+        width: 8.35rem;
+        max-width: 52%;
+        min-height: 1.75rem;
+        padding: 0.12rem 0.2rem;
+        border-radius: 8px;
+        border: 1px solid var(--card-border);
+        background: var(--input-bg);
+        box-sizing: border-box;
+    }
+
+    .page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .spy-stepper-arrow {
+        flex: 0 0 auto;
+        width: 1.35rem;
+        height: 1.35rem;
+        margin: 0;
+        padding: 0;
+        border: none;
+        border-radius: 6px;
+        background: transparent;
+        color: var(--text-secondary);
+        font-size: 1.15rem;
+        line-height: 1;
+        cursor: pointer;
+    }
+
+    .page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .spy-stepper-arrow:active {
+        color: var(--accent);
+    }
+
+    .page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .spy-stepper-label {
+        flex: 1 1 auto;
+        min-width: 0;
+        font-size: 0.95rem;
+        line-height: 1.25;
+        text-align: center;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: var(--input-text);
+    }
+
+    .page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .spy-lobby-body .setup-form {
+        gap: 0.35rem;
+        max-width: 360px;
+        text-align: left;
+    }
+
+    .page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .setup-form label.setup-field-row {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.55rem;
+        width: 100%;
+        margin-bottom: 0.3rem;
+        text-align: left;
+    }
+
+    .page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .setup-field-label {
+        flex: 1 1 auto;
+        min-width: 0;
+        font-size: 0.95rem;
+        color: var(--text-secondary);
+    }
+
+    .page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .setup-form label.setup-field-row--checkbox {
+        justify-content: space-between;
+    }
+
+    .page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .setup-form label.setup-field-row--checkbox input[type="checkbox"] {
+        flex-shrink: 0;
+    }
+
+    .page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .invite-link-title {
+        margin-bottom: 0.4rem;
+        font-size: 0.88rem;
+    }
+
+    .page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .spy-lobby-footer {
+        padding: 2.5rem 0.5rem 1.35rem;
     }
 
     .page-game #screen-waiting.dng-lobby-screen {

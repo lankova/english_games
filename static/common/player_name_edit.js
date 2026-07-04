@@ -215,6 +215,14 @@ window.PlayerNameEdit = (function () {
         delete el._editMaxWidth;
     }
 
+    function clampInputLength(input) {
+        if (input.value.length <= MAX_LEN) return;
+        const pos = input.selectionStart;
+        input.value = input.value.slice(0, MAX_LEN);
+        const newPos = Math.min(typeof pos === 'number' ? pos : MAX_LEN, MAX_LEN);
+        input.setSelectionRange(newPos, newPos);
+    }
+
     function beginInlineEdit(el, currentName, options) {
         const startRect = el.getBoundingClientRect();
         const startWidth = Math.ceil(startRect.width);
@@ -255,7 +263,19 @@ window.PlayerNameEdit = (function () {
         input.setSelectionRange(end, end);
         keepInputCaretVisible(input);
 
+        input.addEventListener('beforeinput', (e) => {
+            if (e.inputType && e.inputType.startsWith('delete')) return;
+            const next = (
+                input.value.slice(0, input.selectionStart ?? 0)
+                + (e.data ?? '')
+                + input.value.slice(input.selectionEnd ?? 0)
+            );
+            if (next.length > MAX_LEN) {
+                e.preventDefault();
+            }
+        });
         input.addEventListener('input', () => {
+            clampInputLength(input);
             resizeEditContainer(el, input);
             keepInputCaretVisible(input);
         });

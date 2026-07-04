@@ -29,50 +29,71 @@
                     <ul id="players-list" class="players-list-vertical"></ul>
                     <img
                         class="lobby-cat"
+                        id="spy-lobby-cat"
                         src="{{ url_for('static', filename='common/images/orange_cat_waiting.png') }}"
                         alt="Waiting cat"
+                        title="Toggle remove players"
                     >
                 </section>
 
                 <form id="setup-form" class="setup-form">
-                    <h2 class="lobby-settings-title">Game settings</h2>
-
-                    <label>
-                        Number of spies
-                        <select id="setting-spy-count">
-                            <option value="1">1</option>
-                            <option value="2">2</option>
-                            <option value="0">1 or 2 spies</option>
-                        </select>
+                    <label class="setup-field-row">
+                        <span class="setup-field-label">Number of spies</span>
+                        <div class="spy-setting-control">
+                            <select id="setting-spy-count" class="spy-setting-select">
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="0">1 or 2 spies</option>
+                            </select>
+                            <div class="spy-setting-stepper" data-for="setting-spy-count">
+                                <button type="button" class="spy-stepper-arrow spy-stepper-prev" aria-label="Previous option">&#8249;</button>
+                                <span class="spy-stepper-label" aria-live="polite"></span>
+                                <button type="button" class="spy-stepper-arrow spy-stepper-next" aria-label="Next option">&#8250;</button>
+                            </div>
+                        </div>
                     </label>
 
-                    <label class="setup-checkbox">
+                    <label class="setup-field-row">
+                        <span class="setup-field-label">Round length (minutes)</span>
+                        <div class="spy-setting-control">
+                            <select id="setting-duration" class="spy-setting-select">
+                                <option value="6">6</option>
+                                <option value="7">7</option>
+                                <option value="8">8</option>
+                                <option value="9" selected>9</option>
+                                <option value="10">10</option>
+                                <option value="11">11</option>
+                                <option value="12">12</option>
+                                <option value="13">13</option>
+                                <option value="14">14</option>
+                                <option value="15">15</option>
+                            </select>
+                            <div class="spy-setting-stepper" data-for="setting-duration">
+                                <button type="button" class="spy-stepper-arrow spy-stepper-prev" aria-label="Previous option">&#8249;</button>
+                                <span class="spy-stepper-label" aria-live="polite"></span>
+                                <button type="button" class="spy-stepper-arrow spy-stepper-next" aria-label="Next option">&#8250;</button>
+                            </div>
+                        </div>
+                    </label>
+
+                    <label class="setup-field-row">
+                        <span class="setup-field-label">Location set</span>
+                        <div class="spy-setting-control">
+                            <select id="setting-location-set" class="spy-setting-select">
+                                <option value="modern_world">Modern world</option>
+                                <option value="myths">Myths</option>
+                            </select>
+                            <div class="spy-setting-stepper" data-for="setting-location-set">
+                                <button type="button" class="spy-stepper-arrow spy-stepper-prev" aria-label="Previous option">&#8249;</button>
+                                <span class="spy-stepper-label" aria-live="polite"></span>
+                                <button type="button" class="spy-stepper-arrow spy-stepper-next" aria-label="Next option">&#8250;</button>
+                            </div>
+                        </div>
+                    </label>
+
+                    <label class="setup-field-row setup-field-row--checkbox">
+                        <span class="setup-field-label">Extra roles</span>
                         <input type="checkbox" id="setting-extra-roles">
-                        Extra roles at the location
-                    </label>
-
-                    <label>
-                        Round length (minutes)
-                        <select id="setting-duration">
-                            <option value="6">6</option>
-                            <option value="7">7</option>
-                            <option value="8">8</option>
-                            <option value="9" selected>9</option>
-                            <option value="10">10</option>
-                            <option value="11">11</option>
-                            <option value="12">12</option>
-                            <option value="13">13</option>
-                            <option value="14">14</option>
-                            <option value="15">15</option>
-                        </select>
-                    </label>
-
-                    <label>
-                        Location set
-                        <select id="setting-location-set">
-                            <option value="modern_world">Modern world</option>
-                            <option value="myths">Myths</option>
-                        </select>
                     </label>
                 </form>
 
@@ -84,12 +105,12 @@
                     </div>
                     <p id="copy-invite-status" class="invite-link-status"></p>
                 </div>
-
-                <p id="lobby-error" class="name-error lobby-error"></p>
             </div>
 
             <div class="startGame spy-lobby-footer">
                 <button id="startGame" class="ok-button" type="button">Start the game</button>
+                <button id="startWithBots" class="ok-button spy-start-bots-btn" type="button" hidden>Start with bots</button>
+                <p id="lobby-error" class="name-error lobby-error"></p>
             </div>
         </div>
 

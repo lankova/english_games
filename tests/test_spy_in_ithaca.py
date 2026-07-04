@@ -127,7 +127,7 @@ class TestSpyRoomManagement:
         assert len(data['room_code']) == 4
         assert 'Alice' in data['players']
         assert data['settings']['spy_count'] == 1
-        assert data['settings']['extra_roles'] is True
+        assert data['settings']['extra_roles'] is False
 
     @allure.story("Join an existing room")
     @allure.title("Second player joins - should broadcast spy_player_joined")
@@ -332,7 +332,7 @@ class TestSpyLobbyRules:
         received = host.get_received()
 
         assert received[0]['name'] == 'error'
-        assert 'at least 4 players' in received[0]['args'][0]['message']
+        assert 'Need at least 3 players.' in received[0]['args'][0]['message']
         assert rooms_game2[room_code]['phase'] == 'waiting'
         host.disconnect()
 
@@ -353,13 +353,135 @@ class TestSpyLobbyRules:
         received = host.get_received()
 
         assert received[0]['name'] == 'error'
-        assert 'at least 4 players' in received[0]['args'][0]['message']
+        assert 'Need at least 3 players.' in received[0]['args'][0]['message']
+        host.disconnect()
+
+    @allure.story("Start with bots")
+    @allure.title("Host can add bot 1 and bot 2 and start alone")
+    @allure.severity(allure.severity_level.NORMAL)
+    def test_start_with_bots(self):
+        host = socketio.test_client(app)
+        room_code = _create_room(host)
+        host.get_received()
+
+        host.emit('spy_start_with_bots', {
+            'room_code': room_code,
+            'player_name': 'Alice',
+            **_default_start_payload(),
+        })
+        time.sleep(0.1)
+        host.get_received()
+
+        room = rooms_game2[room_code]
+        assert 'bot 1' in room['players']
+        assert 'bot 2' in room['players']
+        assert room['players']['bot 1']['is_bot'] is True
+        assert room['phase'] in ('role_reveal', 'playing')
+        host.disconnect()
+
+    @allure.story("Kick player in lobby")
+    @allure.title("Host can remove a player before the game starts")
+    @allure.severity(allure.severity_level.NORMAL)
+    def test_kick_player_in_lobby(self, guest_client_factory):
+        host = socketio.test_client(app)
+        guest = guest_client_factory()
+        room_code = _create_room(host)
+        _join(guest, room_code, 'Bob')
+        host.get_received()
+        guest.get_received()
+
+        host.emit('spy_kick_player', {
+            'room_code': room_code,
+            'player_name': 'Alice',
+            'target_name': 'Bob',
+        })
+        time.sleep(0.1)
+
+        kicked = guest.get_received()
+        assert any(e['name'] == 'spy_player_kicked' for e in kicked)
+        assert 'Bob' not in rooms_game2[room_code]['players']
+        host.disconnect()
+
+    @allure.story("Kick bot in lobby")
+    @allure.title("Host can remove a bot before the game starts")
+    @allure.severity(allure.severity_level.NORMAL)
+    def test_kick_bot_in_lobby(self):
+        host = socketio.test_client(app)
+        room_code = _create_room(host)
+        host.get_received()
+
+        room = rooms_game2[room_code]
+        room['players']['bot 1'] = {'score': 0, 'sid': None, 'is_bot': True}
+        room['players']['bot 2'] = {'score': 0, 'sid': None, 'is_bot': True}
+
+        host.emit('spy_kick_player', {
+            'room_code': room_code,
+            'player_name': 'Alice',
+            'target_name': 'bot 1',
+        })
+        time.sleep(0.1)
+        host.get_received()
+
+        assert 'bot 1' not in rooms_game2[room_code]['players']
+        assert 'bot 2' in rooms_game2[room_code]['players']
+        host.disconnect()
+
+    @allure.story("Bot voting")
+    @allure.title("Bots auto-vote when a human initiates accusation")
+    @allure.severity(allure.severity_level.NORMAL)
+    def test_bots_auto_vote_on_human_initiated_accusation(self):
+        accused = None
+        room_code = None
+        host = None
+
+        for _ in range(40):
+            host = socketio.test_client(app)
+            room_code = _create_room(host)
+            host.get_received()
+
+            host.emit('spy_start_with_bots', {
+                'room_code': room_code,
+                'player_name': 'Alice',
+                **_default_start_payload(),
+            })
+            time.sleep(0.1)
+            host.get_received()
+
+            host.emit('spy_role_ready', {'room_code': room_code, 'player_name': 'Alice'})
+            time.sleep(0.1)
+            host.get_received()
+
+            spies = _spy_names(room_code)
+            accused = next((name for name in spies if name != 'Alice'), None)
+            if accused and rooms_game2[room_code]['phase'] == 'playing':
+                break
+
+            host.disconnect()
+            accused = None
+
+        assert accused, 'Expected a bot spy in at least one attempt'
+
+        host.emit('spy_start_vote', {'room_code': room_code, 'player_name': 'Alice'})
+        time.sleep(0.1)
+        host.get_received()
+
+        host.emit('spy_nominate_accused', {
+            'room_code': room_code,
+            'player_name': 'Alice',
+            'target': accused,
+        })
+        time.sleep(0.15)
+        received = host.get_received()
+
+        assert rooms_game2[room_code]['phase'] == 'results'
+        assert any(e['name'] == 'spy_round_result' for e in received)
+        assert rooms_game2[room_code]['last_result']['winner'] == 'civilians'
         host.disconnect()
 
 
-# ===========
+# ============
 # GAME FLOW
-# ===========
+# ============
 
 @allure.epic("Spy in Ithaca")
 @allure.feature("Game Flow")
