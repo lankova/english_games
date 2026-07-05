@@ -1321,16 +1321,19 @@ body.light-theme .dng-restart-round-btn:hover {
 }
 
 .page-game #screen-locations.spy-play-screen {
-    padding-top: 0.65rem;
-    flex: 1 1 auto;
+    padding-top: 0.5rem;
+    flex: 1 1 0;
     min-height: 0;
     align-self: stretch;
+    display: flex;
+    flex-direction: column;
 }
 
 .page-game .main-card:has(#screen-locations.spy-play-screen[style*="flex"]) {
     justify-content: flex-start;
     align-items: center;
     max-height: 96dvh;
+    padding-bottom: 0.35rem;
 }
 
 /* Hide play UI while 3-2-1 countdown is active */
@@ -1850,7 +1853,12 @@ body.light-theme .role-reveal-screen .ok-button {
 
 .spy-new-round-btn--play {
     box-sizing: border-box;
+    width: auto;
     text-align: center;
+}
+
+.page-game .main-card:has(#screen-locations.spy-play-screen[style*="flex"]) .spy-new-round-btn--play {
+    align-self: flex-start;
 }
 
 .page-game .main-card:has(#screen-role[style*="flex"]) {
@@ -1889,7 +1897,9 @@ body.light-theme .page-game .main-card:has(#screen-role[style*="flex"]) .spy-new
 
 /* ---------- Spy play screen layout ---------- */
 .spy-play-screen {
-    --spy-gap: 0.65rem;
+    --spy-gap: 0.5rem;
+    --spy-loc-row-gap: 0.28rem;
+    --spy-loc-col-gap: 0.28rem;
     width: 100%;
     max-width: 720px;
     flex: 1 1 auto;
@@ -1898,6 +1908,13 @@ body.light-theme .page-game .main-card:has(#screen-role[style*="flex"]) .spy-new
     flex-direction: column;
     align-items: stretch;
     text-align: center;
+}
+
+@media (min-width: 521px) {
+    .spy-play-screen {
+        --spy-loc-row-gap: 0.32rem;
+        --spy-loc-col-gap: 0.36rem;
+    }
 }
 
 .spy-play-game-ui {
@@ -1974,7 +1991,7 @@ body.light-theme .page-game .main-card:has(#screen-role[style*="flex"]) .spy-new
 }
 
 .spy-play-scroll {
-    flex: 1 1 auto;
+    flex: 1 1 0;
     min-height: 0;
     overflow: hidden;
     display: flex;
@@ -1990,7 +2007,7 @@ body.light-theme .page-game .main-card:has(#screen-role[style*="flex"]) .spy-new
     display: flex;
     flex-direction: column;
     width: 100%;
-    gap: 0.38rem;
+    gap: 0.32rem;
 }
 
 .locations-list-caption {
@@ -2134,8 +2151,8 @@ body.light-theme .page-game .main-card:has(#screen-role[style*="flex"]) .spy-new
 .locations-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    grid-template-rows: repeat(7, minmax(0, 1fr));
-    gap: 0.38rem 0.45rem;
+    grid-template-rows: repeat(7, minmax(2.35rem, 1fr));
+    gap: var(--spy-loc-row-gap, 0.28rem) var(--spy-loc-col-gap, 0.28rem);
     width: 100%;
     height: 100%;
     flex: 1 1 auto;
@@ -2149,14 +2166,15 @@ body.light-theme .page-game .main-card:has(#screen-role[style*="flex"]) .spy-new
     justify-content: center;
     width: 100%;
     min-height: 0;
-    padding: 0.2rem 0.35rem;
-    border-radius: 10px;
+    padding: 0.38rem 0.45rem;
+    border-radius: 11px;
     background: rgba(255, 255, 255, 0.04);
     border: 1px solid var(--card-border);
     text-align: center;
     cursor: pointer;
     transition: border-color 0.2s ease, background 0.2s ease, opacity 0.2s ease;
     user-select: none;
+    touch-action: manipulation;
 }
 
 .location-card:hover {
@@ -2171,11 +2189,11 @@ body.light-theme .page-game .main-card:has(#screen-role[style*="flex"]) .spy-new
 }
 
 .location-card-label {
-    font-size: clamp(0.62rem, 1.9vw, 0.76rem);
+    font-size: clamp(0.72rem, 2.4vw, 0.9rem);
     font-weight: 600;
     color: var(--text);
     margin: 0;
-    line-height: 1.15;
+    line-height: 1.2;
     word-break: break-word;
     hyphens: auto;
 }
@@ -2201,101 +2219,166 @@ body.light-theme .page-game .main-card:has(#screen-role[style*="flex"]) .spy-new
 .questions-block {
     flex-shrink: 0;
     width: 100%;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     color: var(--text-secondary);
     font-style: italic;
-    min-height: 2.5rem;
-    margin: var(--spy-gap) 0 0;
-    padding: 0.5rem 0.65rem;
+    margin: 0;
+    padding: 0.45rem 0.6rem;
     border-radius: 10px;
     background: var(--card-bg);
     border: 1px solid var(--card-border);
-    line-height: 1.4;
+    line-height: 1.35;
 }
 
-.spy-round-actions {
-    flex-shrink: 0;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    justify-content: center;
+.questions-block:empty {
+    display: none;
+}
+
+.spy-play-bottom {
+    flex: 0 0 auto;
     width: 100%;
-    margin: var(--spy-gap) 0 0;
+    margin-top: 0;
     padding: 0;
 }
 
-.spy-round-actions #vote-btn {
-    min-width: 12rem;
-    min-height: 3.15rem;
-    padding: 0.9rem 1.75rem;
-    font-size: 1.08rem;
-    font-weight: 700;
+/* Civilians: vote + cat just above Restart round; locations fill space above */
+.spy-play-game-ui:not(:has(.spy-round-actions--spy)) .spy-play-bottom {
+    flex: 0 0 auto;
+    margin-top: auto;
+}
+
+.spy-play-game-ui:not(:has(.spy-round-actions--spy)) .locations-grid {
+    grid-template-rows: repeat(7, minmax(2.55rem, 1fr));
+}
+
+.questions-block:not(:empty) {
+    margin-top: 0.5rem;
+    margin-bottom: 0.35rem;
+}
+
+.spy-play-bottom-panel {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: var(--spy-loc-row-gap) var(--spy-loc-col-gap);
+    align-items: end;
+    width: 100%;
+}
+
+.spy-play-cat {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: center;
+    align-self: end;
+    width: min(120px, 34vw);
+    max-height: 5.5rem;
+    height: auto;
+    object-fit: contain;
+    margin: 0;
+    pointer-events: none;
+    user-select: none;
+}
+
+.spy-round-actions {
+    grid-column: 2 / 4;
+    grid-row: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+.spy-round-actions #vote-btn,
+.spy-round-actions #spy-guess-btn {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 0.65rem 0.85rem;
     border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1.2;
     background: var(--accent);
-    border-color: var(--accent);
+    border: 2px solid var(--accent);
     color: #1a1a1a;
     box-shadow: 0 4px 14px rgba(244, 162, 97, 0.28);
 }
 
-.spy-round-actions #vote-btn:hover {
+.spy-round-actions #vote-btn:hover,
+.spy-round-actions #spy-guess-btn:hover {
     background: #e8944d;
     border-color: #e8944d;
     transform: translateY(-1px);
     box-shadow: 0 6px 18px rgba(244, 162, 97, 0.38);
 }
 
-/* Spy: guess is primary (full width), vote is a quiet secondary action below */
-.spy-round-actions.spy-round-actions--spy {
-    flex-direction: column;
-    align-items: stretch;
-}
+@media (min-width: 521px) {
+    .spy-play-cat {
+        width: min(140px, 15vw);
+        max-height: 6.5rem;
+    }
 
-.spy-round-actions.spy-round-actions--spy #spy-guess-btn,
-.spy-round-actions.spy-round-actions--spy #vote-btn {
-    width: 100%;
-    min-width: 0;
-    flex: 0 0 auto;
-    min-height: 3.15rem;
-    padding: 0.9rem 1.75rem;
-    border-radius: 12px;
-}
-
-.spy-round-actions.spy-round-actions--spy #spy-guess-btn {
-    font-size: 1.08rem;
-    font-weight: 700;
-    box-shadow: 0 4px 14px rgba(244, 162, 97, 0.28);
-}
-
-.spy-round-actions.spy-round-actions--spy #vote-btn {
-    font-size: 1.02rem;
-    font-weight: 600;
-    background: var(--card-bg);
-    border: 2px solid var(--card-border);
-    color: var(--text-muted);
-    box-shadow: none;
-    transform: none;
-}
-
-.spy-round-actions.spy-round-actions--spy #vote-btn:hover {
-    background: var(--timer-bg);
-    border-color: color-mix(in srgb, var(--accent) 38%, var(--card-border));
-    color: var(--text-secondary);
-    transform: none;
-    box-shadow: none;
+    .spy-round-actions #vote-btn,
+    .spy-round-actions #spy-guess-btn {
+        padding: 0.7rem 1rem;
+        font-size: 1.05rem;
+    }
 }
 
 @media (max-width: 520px) {
-    .locations-grid {
-        gap: 0.28rem 0.32rem;
+    .spy-play-game-ui:has(.spy-round-actions--spy) .spy-play-scroll {
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .spy-play-game-ui:not(:has(.spy-round-actions--spy)) .spy-play-scroll {
+        overflow-y: hidden;
+    }
+
+    .spy-play-game-ui:has(.spy-round-actions--spy) .locations-grid {
+        grid-template-rows: repeat(7, minmax(1.65rem, 1fr));
+        height: auto;
+        min-height: min(100%, calc(7 * 1.85rem + 6 * var(--spy-loc-row-gap, 0.28rem)));
+    }
+
+    .spy-play-game-ui:not(:has(.spy-round-actions--spy)) .locations-grid {
+        grid-template-rows: repeat(7, minmax(1.9rem, 1fr));
+        height: 100%;
+        min-height: 0;
     }
 
     .location-card {
-        padding: 0.15rem 0.25rem;
-        border-radius: 8px;
+        min-height: 1.65rem;
+        padding: 0.28rem 0.32rem;
+        border-radius: 9px;
     }
 
     .location-card-label {
-        font-size: clamp(0.58rem, 2.8vw, 0.68rem);
+        font-size: clamp(0.62rem, 2.9vw, 0.74rem);
+        line-height: 1.1;
+    }
+
+    .spy-play-bottom-panel {
+        gap: var(--spy-loc-row-gap) var(--spy-loc-col-gap);
+    }
+
+    .spy-play-cat {
+        width: min(88px, 28vw);
+        max-height: 4.25rem;
+    }
+
+    .spy-round-actions {
+        gap: 0.32rem;
+    }
+
+    .spy-round-actions #vote-btn,
+    .spy-round-actions #spy-guess-btn {
+        padding: 0.52rem 0.55rem;
+        font-size: 0.9rem;
+    }
+
+    .spy-round-actions #spy-guess-btn {
+        font-size: 0.82rem;
     }
 }
 
@@ -2595,17 +2678,19 @@ body.light-theme .lobby-players-panel .players-list-vertical li {
     width: 100%;
     max-width: 360px;
     min-height: 2.35rem;
-    margin: 0.35rem auto 0;
+    margin: 0.25rem auto 0;
     text-align: center;
     box-sizing: border-box;
 }
 
-.spy-lobby-footer .lobby-error:not(.show) {
-    margin: 0.35rem auto 0;
-    min-height: 2.35rem;
-    height: auto;
-    overflow: hidden;
-    visibility: hidden;
+.page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .spy-lobby-footer .lobby-error {
+    margin: 0.2rem auto 0;
+}
+
+.page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .spy-lobby-footer .lobby-error:not(.show) {
+    margin: 0;
+    min-height: 0;
+    height: 0;
 }
 
 /* Spy lobby (not D&G): compact layout, cat in panel corner */
@@ -2689,13 +2774,6 @@ body.light-theme .lobby-players-panel .players-list-vertical li {
     margin: 0;
 }
 
-.page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .spy-lobby-body::after {
-    content: '';
-    flex: 1 1 auto;
-    min-height: 1.75rem;
-    width: 100%;
-}
-
 .page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .spy-setting-control {
     flex: 0 0 auto;
 }
@@ -2705,9 +2783,20 @@ body.light-theme .lobby-players-panel .players-list-vertical li {
 }
 
 .page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .spy-lobby-footer {
-    padding: 2rem 0.5rem 1.15rem;
+    margin-top: auto;
+    margin-bottom: 0;
+    padding: 0.2rem 0.5rem 0.45rem;
     border-top: none;
     background: none;
+}
+
+.page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .startGame.spy-lobby-footer {
+    margin-top: auto;
+    margin-bottom: 0;
+}
+
+.page-game .main-card:has(#screen-waiting.spy-lobby-screen:not(.dng-lobby-screen)[style*="flex"]) {
+    padding-bottom: 0.55rem;
 }
 
 .lobby-waiting-message {
@@ -2879,11 +2968,7 @@ body.light-theme .lobby-players-panel .players-list-vertical li {
 
     .page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) {
         padding-top: 0.65rem;
-        padding-bottom: 0.85rem;
-    }
-
-    .page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .spy-lobby-body::after {
-        min-height: 2.75rem;
+        padding-bottom: 0;
     }
 
     .page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .spy-lobby-body {
@@ -3009,7 +3094,11 @@ body.light-theme .lobby-players-panel .players-list-vertical li {
     }
 
     .page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .spy-lobby-footer {
-        padding: 2.5rem 0.5rem 1.35rem;
+        padding: 0.15rem 0.5rem 0.5rem;
+    }
+
+    .page-game .main-card:has(#screen-waiting.spy-lobby-screen:not(.dng-lobby-screen)[style*="flex"]) {
+        padding-bottom: 0.45rem;
     }
 
     .page-game #screen-waiting.dng-lobby-screen {

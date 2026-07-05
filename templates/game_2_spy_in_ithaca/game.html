@@ -269,13 +269,23 @@
                     </div>
                 </div>
 
-                <p id="questions-block" class="questions-block"></p>
+                <div class="spy-play-bottom">
+                    <p id="questions-block" class="questions-block"></p>
 
-                <div id="playing-actions" class="spy-round-actions">
-                    <button id="spy-guess-btn" class="spy-action-btn spy-action-btn-accent" style="display: none;">
-                        I want to guess the location
-                    </button>
-                    <button id="vote-btn" class="spy-action-btn" type="button">Let's vote</button>
+                    <div class="spy-play-bottom-panel">
+                        <img
+                            class="spy-play-cat"
+                            src="{{ url_for('static', filename='common/images/orange_cat_waiting.png') }}"
+                            alt=""
+                            aria-hidden="true"
+                        >
+                        <div id="playing-actions" class="spy-round-actions">
+                            <button id="spy-guess-btn" class="spy-action-btn" type="button" style="display: none;">
+                                I want to guess the location
+                            </button>
+                            <button id="vote-btn" class="spy-action-btn" type="button">Let's vote</button>
+                        </div>
+                    </div>
                 </div>
             </div>
 

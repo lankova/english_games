@@ -466,27 +466,33 @@ function openLobbyScreen() {
     syncSpyLobbyScroll();
 }
 
-let cachedVoteBtnWidth = 0;
-
 function syncRestartRoundButtonWidth() {
     const voteBtn = document.getElementById('vote-btn');
     const restartBtn = document.getElementById('new-round-btn');
-    if (!voteBtn || !restartBtn) return;
+    const playScreen = document.getElementById('screen-locations');
+    const mainCard = document.querySelector('.main-card');
+    if (!voteBtn || !restartBtn || !mainCard) return;
 
-    if (!restartBtn.classList.contains('spy-new-round-btn--play')) {
+    const showOnPlay = restartBtn.classList.contains('spy-new-round-btn--play')
+        && playScreen
+        && playScreen.style.display === 'flex';
+
+    if (!showOnPlay) {
+        restartBtn.style.marginLeft = '';
+        restartBtn.style.alignSelf = '';
         restartBtn.style.width = '';
         return;
     }
 
     requestAnimationFrame(() => {
-        const width = voteBtn.getBoundingClientRect().width;
-        if (width > 0) {
-            cachedVoteBtnWidth = width;
-        }
-        const targetWidth = width > 0 ? width : cachedVoteBtnWidth;
-        if (targetWidth > 0) {
-            restartBtn.style.width = `${targetWidth}px`;
-        }
+        restartBtn.style.width = 'auto';
+        const voteRect = voteBtn.getBoundingClientRect();
+        const restartRect = restartBtn.getBoundingClientRect();
+        const cardRect = mainCard.getBoundingClientRect();
+        const voteCenter = voteRect.left + (voteRect.width / 2);
+        const restartLeft = voteCenter - (restartRect.width / 2);
+        restartBtn.style.marginLeft = `${Math.max(0, restartLeft - cardRect.left)}px`;
+        restartBtn.style.alignSelf = 'flex-start';
     });
 }
 
@@ -928,6 +934,7 @@ function renderLocationsGrid() {
 
         grid.appendChild(card);
     });
+    syncRestartRoundButtonWidth();
 }
 
 function showQuestionIdea(question) {
@@ -1076,6 +1083,13 @@ function showPlayingUI() {
 }
 
 // Civilians already know the location; spies get role-specific result copy.
+function formatSpyNames(spies) {
+    if (!spies || spies.length === 0) return '?';
+    if (spies.length === 1) return spies[0];
+    if (spies.length === 2) return `${spies[0]} and ${spies[1]}`;
+    return `${spies.slice(0, -1).join(', ')}, and ${spies[spies.length - 1]}`;
+}
+
 function getRoundResultView(data) {
     const result = data.result;
     const location = data.secret_location || '?';
@@ -1089,25 +1103,35 @@ function getRoundResultView(data) {
         };
     }
 
-    const votedOutSpy =
-        result.reason === 'vote'
-        && result.winner === 'civilians'
-        && result.accused;
+    const spies = Array.isArray(result.spies) ? result.spies : [];
+    const accused = result.accused;
 
-    if (myRole?.is_spy && votedOutSpy) {
-        const accused = result.accused;
-        if (playerName === accused) {
+    if (myRole?.is_spy && result.reason === 'vote') {
+        if (result.winner === 'spies' && accused) {
+            const spyNames = formatSpyNames(spies);
+            const winLine = spies.includes(playerName)
+                ? (spies.length === 1
+                    ? 'You were the spy — and win this round!'
+                    : `You were among the spies (${spyNames}) — spies win this round!`)
+                : `${spyNames} ${spies.length === 1 ? 'was' : 'were'} the spy — and win this round!`;
             return {
-                message: (
-                    `They found you!\n\n`
-                    + `The secret location was ${location}.`
-                ),
-                secretLine: '',
+                message: `${accused} wasn't the spy.\n\n${winLine}`,
+                secretLine: `Secret location: ${location}`,
                 plain: true,
             };
         }
-        const resolvedCount = result.resolved_spy_count ?? getSpyCountSetting();
-        if (resolvedCount >= 2) {
+
+        if (result.winner === 'civilians' && accused && spies.includes(accused)) {
+            if (playerName === accused) {
+                return {
+                    message: (
+                        `They found you!\n\n`
+                        + `The secret location was ${location}.`
+                    ),
+                    secretLine: '',
+                    plain: true,
+                };
+            }
             return {
                 message: (
                     `They caught one of us...\n\n`
@@ -1294,6 +1318,9 @@ socket.on('spy_state_update', (data) => {
 });
 
 socket.on('spy_role_assigned', (data) => {
+    if (data.player_name && playerName && data.player_name !== playerName) {
+        return;
+    }
     myRole = data;
     if (data.show_screen === false) {
         if (document.getElementById('screen-locations').style.display === 'flex') {

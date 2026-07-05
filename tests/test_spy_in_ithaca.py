@@ -1,4 +1,5 @@
 import time
+import random as random_module
 import allure
 import pytest
 from app import app, rooms_game2, socketio
@@ -429,37 +430,22 @@ class TestSpyLobbyRules:
     @allure.story("Bot voting")
     @allure.title("Bots auto-vote when a human initiates accusation")
     @allure.severity(allure.severity_level.NORMAL)
-    def test_bots_auto_vote_on_human_initiated_accusation(self):
-        accused = None
-        room_code = None
-        host = None
+    def test_bots_auto_cast_votes_on_accusation(self):
+        host = socketio.test_client(app)
+        room_code = _create_room(host)
+        host.get_received()
 
-        for _ in range(40):
-            host = socketio.test_client(app)
-            room_code = _create_room(host)
-            host.get_received()
+        host.emit('spy_start_with_bots', {
+            'room_code': room_code,
+            'player_name': 'Alice',
+            **_default_start_payload(),
+        })
+        time.sleep(0.1)
+        host.get_received()
 
-            host.emit('spy_start_with_bots', {
-                'room_code': room_code,
-                'player_name': 'Alice',
-                **_default_start_payload(),
-            })
-            time.sleep(0.1)
-            host.get_received()
-
-            host.emit('spy_role_ready', {'room_code': room_code, 'player_name': 'Alice'})
-            time.sleep(0.1)
-            host.get_received()
-
-            spies = _spy_names(room_code)
-            accused = next((name for name in spies if name != 'Alice'), None)
-            if accused and rooms_game2[room_code]['phase'] == 'playing':
-                break
-
-            host.disconnect()
-            accused = None
-
-        assert accused, 'Expected a bot spy in at least one attempt'
+        host.emit('spy_role_ready', {'room_code': room_code, 'player_name': 'Alice'})
+        time.sleep(0.1)
+        host.get_received()
 
         host.emit('spy_start_vote', {'room_code': room_code, 'player_name': 'Alice'})
         time.sleep(0.1)
@@ -468,15 +454,114 @@ class TestSpyLobbyRules:
         host.emit('spy_nominate_accused', {
             'room_code': room_code,
             'player_name': 'Alice',
-            'target': accused,
+            'target': 'bot 1',
         })
         time.sleep(0.15)
         received = host.get_received()
 
+        bot_casts = [
+            e for e in received
+            if e['name'] == 'spy_vote_cast'
+            and e['args'][0].get('voter', '').startswith('bot')
+        ]
+        assert bot_casts, 'Expected bots to cast votes automatically'
+        host.disconnect()
+
+    @allure.story("Bot voting")
+    @allure.title("Voting out an innocent player lists the real spy, not the accused")
+    @allure.severity(allure.severity_level.CRITICAL)
+    def test_host_spy_voting_out_civilian_shows_host_as_spy(self, monkeypatch):
+        real_choice = random_module.choice
+
+        def pick_yes_for_ballot(options):
+            opts = list(options)
+            if len(opts) == 2 and set(opts) == {'yes', 'no'}:
+                return 'yes'
+            return real_choice(options)
+
+        monkeypatch.setattr(
+            'games.game_2_spy_in_ithaca.socket_handlers.random.choice',
+            pick_yes_for_ballot,
+        )
+
+        host = socketio.test_client(app)
+        room_code = _create_room(host)
+        host.get_received()
+
+        host.emit('spy_start_with_bots', {
+            'room_code': room_code,
+            'player_name': 'Alice',
+            **_default_start_payload(),
+        })
+        time.sleep(0.1)
+        host.get_received()
+
+        room = rooms_game2[room_code]
+        for name in room['roles']:
+            room['roles'][name]['is_spy'] = (name == 'Alice')
+
+        host.emit('spy_role_ready', {'room_code': room_code, 'player_name': 'Alice'})
+        time.sleep(0.1)
+        host.get_received()
+
+        host.emit('spy_start_vote', {'room_code': room_code, 'player_name': 'Alice'})
+        time.sleep(0.1)
+        host.get_received()
+
+        host.emit('spy_nominate_accused', {
+            'room_code': room_code,
+            'player_name': 'Alice',
+            'target': 'bot 1',
+        })
+        time.sleep(0.15)
+        received = host.get_received()
+
+        last_result = rooms_game2[room_code]['last_result']
         assert rooms_game2[room_code]['phase'] == 'results'
         assert any(e['name'] == 'spy_round_result' for e in received)
-        assert rooms_game2[room_code]['last_result']['winner'] == 'civilians'
+        assert last_result['winner'] == 'spies'
+        assert last_result['spies'] == ['Alice']
+        assert 'Alice' in last_result['message']
+        assert 'bot 1' in last_result['message']
+        assert 'was the spy' in last_result['message']
+        assert rooms_game2[room_code]['players']['Alice']['score'] == 1
+        assert rooms_game2[room_code]['players']['bot 1']['score'] == 0
         host.disconnect()
+
+    @allure.story("Bot voting")
+    @allure.title("Host receives only their own role, not bot roles")
+    @allure.severity(allure.severity_level.CRITICAL)
+    def test_host_does_not_receive_bot_role_assignments(self):
+        host = socketio.test_client(app)
+        room_code = _create_room(host)
+        host.get_received()
+
+        for _ in range(30):
+            host.emit('spy_start_with_bots', {
+                'room_code': room_code,
+                'player_name': 'Alice',
+                **_default_start_payload(),
+            })
+            time.sleep(0.1)
+            received = host.get_received()
+            roles = rooms_game2[room_code]['roles']
+            server_spy = next(name for name, role in roles.items() if role['is_spy'])
+            role_events = [e['args'][0] for e in received if e['name'] == 'spy_role_assigned']
+            if server_spy.startswith('bot'):
+                assert len(role_events) == 1, (
+                    'Host should receive one role assignment, not bot roles'
+                )
+                assert role_events[0]['player_name'] == 'Alice'
+                assert role_events[0]['is_spy'] is False
+                host.disconnect()
+                return
+            rooms_game2[room_code]['phase'] = 'waiting'
+            rooms_game2[room_code]['game_started'] = False
+            rooms_game2[room_code]['roles'] = {}
+            host.get_received()
+
+        host.disconnect()
+        pytest.fail('Expected a bot spy assignment in at least one attempt')
 
 
 # ============
@@ -714,6 +799,7 @@ class TestSpyVoting:
         assert results, 'Expected round result after unanimous yes'
         result = results[0]['args'][0]['result']
         assert result['winner'] == 'civilians'
+        assert spy_name in result['spies']
         assert spy_name in result['message'] or 'found the spy' in result['message']
         assert rooms_game2[room_code]['phase'] == 'results'
 

@@ -238,6 +238,11 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
                 last["accused"] = new_name
             if last.get("spy") == old_name:
                 last["spy"] = new_name
+            if last.get("spies"):
+                last["spies"] = [
+                    new_name if spy_name == old_name else spy_name
+                    for spy_name in last["spies"]
+                ]
             msg = last.get("message")
             if msg and old_name in msg:
                 last["message"] = msg.replace(old_name, new_name)
@@ -263,6 +268,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
             return None
         settings = room["settings"]
         private = {
+            "player_name": name,
             "is_spy": role_info["is_spy"],
             "role": role_info["role"],
         }
@@ -408,27 +414,13 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
             if pdata.get("is_bot") and name not in ready:
                 ready.append(name)
 
-    def _bot_votes_yes_on_accused(room, bot_name, accused):
-        roles = room.get("roles", {})
-        bot_is_spy = roles.get(bot_name, {}).get("is_spy")
-        accused_is_spy = roles.get(accused, {}).get("is_spy")
-        if bot_is_spy:
-            return not accused_is_spy
-        return bool(accused_is_spy)
+    def _bot_vote_decision():
+        return random.choice(["yes", "no"])
 
     def _bot_final_vote_target(room, bot_name):
-        roles = room.get("roles", {})
         players = _players_list(room)
         others = [p for p in players if p != bot_name]
-        if not others:
-            return None
-        if roles.get(bot_name, {}).get("is_spy"):
-            civilians = [
-                p for p in others if not roles.get(p, {}).get("is_spy")
-            ]
-            return random.choice(civilians) if civilians else random.choice(others)
-        spies = [p for p in others if roles.get(p, {}).get("is_spy")]
-        return random.choice(spies) if spies else random.choice(others)
+        return random.choice(others) if others else None
 
     def _auto_cast_bot_votes(room_code):
         room = _room(room_code)
@@ -445,7 +437,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
                 continue
             if voter in room.get("vote_ballots", {}):
                 continue
-            decision = "yes" if _bot_votes_yes_on_accused(room, voter, accused) else "no"
+            decision = _bot_vote_decision()
             if not _record_ballot(room, voter, accused, decision):
                 continue
             socketio.emit("spy_vote_cast", {
@@ -681,35 +673,37 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
             if room["roles"][name]["is_spy"]
         ]
 
+    def _format_spy_names(spies):
+        if not spies:
+            return "?"
+        if len(spies) == 1:
+            return spies[0]
+        if len(spies) == 2:
+            return f"{spies[0]} and {spies[1]}"
+        return ", ".join(spies[:-1]) + f", and {spies[-1]}"
+
     def _vote_result_message(room, accused):
         spies = _spy_names(room)
-        spy_count = _effective_spy_count(room)
-        accused_is_spy = room["roles"][accused]["is_spy"]
-
-        if spy_count >= 2:
-            if accused_is_spy:
-                others = [name for name in spies if name != accused]
-                other_spy = others[0] if others else "?"
-                return (
-                    f"You found a spy! Congratulations! "
-                    f"The other spy was {other_spy}."
-                )
-            if len(spies) >= 2:
-                return (
-                    f"{accused} was not a spy. "
-                    f"{spies[0]} and {spies[1]} were the spies. "
-                    f"Spies win this round!"
-                )
-            spy = spies[0] if spies else "?"
-            return (
-                f"{accused} wasn't a spy.\n\n{spy} was the spy — and wins this round!"
-            )
+        accused_is_spy = accused in spies
 
         if accused_is_spy:
+            remaining = [name for name in spies if name != accused]
+            if remaining:
+                return (
+                    f"You found a spy! Congratulations! "
+                    f"The other spy was {remaining[0]}."
+                )
             return f"You found the spy — {accused}"
-        spy = spies[0] if spies else "?"
+
+        spy_names = _format_spy_names(spies)
+        if len(spies) > 1:
+            return (
+                f"{accused} was not a spy. "
+                f"{spy_names} were the spies. "
+                f"Spies win this round!"
+            )
         return (
-            f"{accused} wasn't the spy.\n\n{spy} was the spy — and wins this round!"
+            f"{accused} wasn't the spy.\n\n{spy_names} was the spy — and wins this round!"
         )
 
     def _finish_unanimous_vote(room_code, accused):
@@ -717,7 +711,8 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         if not room:
             return
 
-        accused_is_spy = room["roles"][accused]["is_spy"]
+        spies = _spy_names(room)
+        accused_is_spy = accused in spies
         if accused_is_spy:
             winner = "civilians"
         else:
@@ -735,6 +730,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
             "reason": "vote",
             "winner": winner,
             "accused": accused,
+            "spies": spies,
             "message": message,
             "resolved_spy_count": _effective_spy_count(room),
         }
@@ -1012,8 +1008,13 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
                 room["roles"][name] = {"is_spy": False, "role": role}
 
         for name, pdata in room["players"].items():
+            sid = pdata.get("sid")
+            if not sid:
+                continue
+
             role_info = room["roles"][name]
             private = {
+                "player_name": name,
                 "is_spy": role_info["is_spy"],
                 "role": role_info["role"],
             }
@@ -1026,7 +1027,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
                 if role_info["role"]:
                     private["role_label"] = role_info["role"]
 
-            socketio.emit("spy_role_assigned", private, to=pdata["sid"])
+            socketio.emit("spy_role_assigned", private, to=sid)
 
         return True
 
