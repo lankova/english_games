@@ -312,6 +312,12 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
                     "time_left": room.get("timer_time_left"),
                 }, to=request.sid)
             question = room.get("player_questions", {}).get(name)
+            if not question and room.get("question_deck") is not None:
+                drawn = _draw_questions(room, 1)
+                if drawn:
+                    question = drawn[0]
+                    room.setdefault("player_questions", {})[name] = question
+                    save_room_to_db(room_code, rooms)
             if question:
                 emit("spy_question_idea", {"question": question}, to=request.sid)
         elif phase == "vote_nominate":
@@ -578,14 +584,15 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         batch_seen = set()
 
         while len(drawn) < count:
+            if not deck:
+                break
             if pos >= len(deck):
                 random.shuffle(deck)
                 pos = 0
             question = deck[pos]
             pos += 1
-            if question in batch_seen:
-                if len(batch_seen) < len(deck):
-                    continue
+            if question in batch_seen and len(batch_seen) < len(deck):
+                continue
             batch_seen.add(question)
             drawn.append(question)
 

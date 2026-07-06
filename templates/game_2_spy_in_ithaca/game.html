@@ -10,6 +10,21 @@
 
 <body class="page-game">
     <button id="theme-toggle" class="theme-toggle" title="Switch theme">🌓</button>
+    <button
+        id="new-round-btn"
+        class="game-restart-round-btn"
+        type="button"
+        style="display: none;"
+        title="Restart round"
+        aria-label="Restart round"
+    >
+        <svg class="game-restart-round-icon" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+                fill="currentColor"
+                d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"
+            />
+        </svg>
+    </button>
 
     <div class="main-card"> <!-- Light card with rounded corners - purely decorative -->
 
@@ -184,7 +199,7 @@
                 </div>
 
                 <!-- Vote / spy-guess overlays (shown instead of normal play actions) -->
-                <div id="spy-play-interrupt-zone" class="spy-play-interrupt-zone">
+                <div id="spy-play-interrupt-zone" class="spy-play-interrupt-zone" style="display: none;">
                 <div id="vote-nominate-panel" class="vote-panel" style="display: none;">
                     <p id="vote-nominate-status" class="vote-prompt"></p>
                     <div id="vote-nominate-initiator-view" class="vote-nominate-initiator-view" style="display: none;">
@@ -312,10 +327,6 @@
             <h1>The room doesn't exist</h1>
             <button id="goHomeBtn" class="ok-button">Go to the main page</button>
         </div>
-
-        <button id="new-round-btn" class="spy-new-round-btn" type="button" style="display: none;">
-            Restart round
-        </button>
 
     </div>
 

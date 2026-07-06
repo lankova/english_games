@@ -821,7 +821,8 @@ Game links are styled as buttons for better UX. */
     height: 1rem;
 }
 
-.dng-restart-round-btn {
+.dng-restart-round-btn,
+.game-restart-round-btn {
     position: fixed;
     top: calc(1rem + 2.5rem + 0.85rem);
     right: calc(1rem + 0.25rem);
@@ -839,31 +840,39 @@ Game links are styled as buttons for better UX. */
     opacity: 0.22;
     cursor: pointer;
     border-radius: 50%;
+    font-size: 0;
+    line-height: 0;
     transition: opacity 0.15s ease, color 0.15s ease;
 }
 
-.dng-restart-round-btn:hover {
+.dng-restart-round-btn:hover,
+.game-restart-round-btn:hover {
     opacity: 0.45;
     color: var(--text-secondary);
 }
 
-.dng-restart-round-btn:focus-visible {
+.dng-restart-round-btn:focus-visible,
+.game-restart-round-btn:focus-visible {
     outline: 1px solid color-mix(in srgb, var(--text-muted) 50%, transparent);
     outline-offset: 2px;
     opacity: 0.5;
 }
 
-.dng-restart-round-icon {
+.dng-restart-round-icon,
+.game-restart-round-icon {
     width: 1rem;
     height: 1rem;
     display: block;
+    flex-shrink: 0;
 }
 
-body.light-theme .dng-restart-round-btn {
+body.light-theme .dng-restart-round-btn,
+body.light-theme .game-restart-round-btn {
     opacity: 0.18;
 }
 
-body.light-theme .dng-restart-round-btn:hover {
+body.light-theme .dng-restart-round-btn:hover,
+body.light-theme .game-restart-round-btn:hover {
     opacity: 0.38;
 }
 
@@ -1321,7 +1330,7 @@ body.light-theme .dng-restart-round-btn:hover {
 }
 
 .page-game #screen-locations.spy-play-screen {
-    padding-top: 0.5rem;
+    padding-top: 0.15rem;
     flex: 1 1 0;
     min-height: 0;
     align-self: stretch;
@@ -1333,7 +1342,7 @@ body.light-theme .dng-restart-round-btn:hover {
     justify-content: flex-start;
     align-items: center;
     max-height: 96dvh;
-    padding-bottom: 0.35rem;
+    padding-bottom: 0.65rem;
 }
 
 /* Hide play UI while 3-2-1 countdown is active */
@@ -1828,39 +1837,6 @@ body.light-theme .role-reveal-screen .ok-button {
     transform: scale(0.96);
 }
 
-.spy-new-round-btn {
-    flex-shrink: 0;
-    align-self: center;
-    margin-top: 0.35rem;
-    padding: 0.12rem 0.45rem;
-    font-size: 0.68rem;
-    font-weight: 400;
-    line-height: 1.2;
-    white-space: nowrap;
-    color: var(--text-muted);
-    background: transparent;
-    border: 1px solid var(--card-border);
-    border-radius: 6px;
-    cursor: pointer;
-    opacity: 0.4;
-}
-
-.spy-new-round-btn:hover {
-    opacity: 0.65;
-    color: var(--text-secondary);
-    border-color: var(--text-muted);
-}
-
-.spy-new-round-btn--play {
-    box-sizing: border-box;
-    width: auto;
-    text-align: center;
-}
-
-.page-game .main-card:has(#screen-locations.spy-play-screen[style*="flex"]) .spy-new-round-btn--play {
-    align-self: flex-start;
-}
-
 .page-game .main-card:has(#screen-role[style*="flex"]) {
     justify-content: flex-start;
 }
@@ -1871,33 +1847,10 @@ body.light-theme .role-reveal-screen .ok-button {
     justify-content: center;
 }
 
-.page-game .main-card:has(#screen-role[style*="flex"]) .spy-new-round-btn {
-    margin-top: auto;
-    margin-bottom: 0;
-    padding: 0.1rem 0.35rem;
-    font-size: 0.62rem;
-    font-weight: 400;
-    opacity: 0.2;
-    border-color: rgba(255, 255, 255, 0.12);
-    color: var(--text-muted);
-}
-
-body.light-theme .page-game .main-card:has(#screen-role[style*="flex"]) .spy-new-round-btn {
-    border-color: rgba(0, 0, 0, 0.1);
-}
-
-.page-game .main-card:has(#screen-role[style*="flex"]) .spy-new-round-btn:hover {
-    opacity: 0.42;
-    border-color: rgba(255, 255, 255, 0.22);
-}
-
-body.light-theme .page-game .main-card:has(#screen-role[style*="flex"]) .spy-new-round-btn:hover {
-    border-color: rgba(0, 0, 0, 0.16);
-}
-
 /* ---------- Spy play screen layout ---------- */
 .spy-play-screen {
     --spy-gap: 0.5rem;
+    --spy-section-gap: 0.55rem;
     --spy-loc-row-gap: 0.28rem;
     --spy-loc-col-gap: 0.28rem;
     width: 100%;
@@ -1912,7 +1865,7 @@ body.light-theme .page-game .main-card:has(#screen-role[style*="flex"]) .spy-new
 
 @media (min-width: 521px) {
     .spy-play-screen {
-        --spy-loc-row-gap: 0.32rem;
+        --spy-loc-row-gap: 0.42rem;
         --spy-loc-col-gap: 0.36rem;
     }
 }
@@ -1923,6 +1876,7 @@ body.light-theme .page-game .main-card:has(#screen-role[style*="flex"]) .spy-new
     flex: 1 1 auto;
     min-height: 0;
     width: 100%;
+    gap: 0;
 }
 
 .spy-play-game-ui .vote-panel {
@@ -1936,8 +1890,9 @@ body.light-theme .page-game .main-card:has(#screen-role[style*="flex"]) .spy-new
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: var(--spy-gap);
+    gap: var(--spy-section-gap);
     padding-bottom: 0;
+    margin-bottom: var(--spy-section-gap);
 }
 
 .spy-timer-row {
@@ -1951,7 +1906,7 @@ body.light-theme .page-game .main-card:has(#screen-role[style*="flex"]) .spy-new
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: calc(var(--spy-gap) * 0.75);
+    gap: var(--spy-section-gap);
     max-width: 100%;
 }
 
@@ -1984,10 +1939,11 @@ body.light-theme .page-game .main-card:has(#screen-role[style*="flex"]) .spy-new
 .spy-play-interrupt-zone {
     flex-shrink: 0;
     width: 100%;
+    margin: 0 0 var(--spy-section-gap);
 }
 
 .spy-play-interrupt-zone .vote-panel {
-    margin: var(--spy-gap) auto 0;
+    margin: 0 auto;
 }
 
 .spy-play-scroll {
@@ -1997,7 +1953,7 @@ body.light-theme .page-game .main-card:has(#screen-role[style*="flex"]) .spy-new
     display: flex;
     flex-direction: column;
     width: 100%;
-    margin: var(--spy-gap) 0 0;
+    margin: 0 0 var(--spy-section-gap);
     padding: 0;
 }
 
@@ -2087,8 +2043,9 @@ body.light-theme .page-game .main-card:has(#screen-role[style*="flex"]) .spy-new
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: calc(var(--spy-gap) * 0.5);
+    gap: 0.35rem;
     text-align: center;
+    margin: 0;
 }
 
 .info-location {
@@ -2117,7 +2074,7 @@ body.light-theme .page-game .main-card:has(#screen-role[style*="flex"]) .spy-new
     gap: 0.4rem;
     justify-content: center;
     align-items: center;
-    margin: 0;
+    margin: 0 0 0.05rem;
 }
 
 .players-wrap {
@@ -2151,7 +2108,7 @@ body.light-theme .page-game .main-card:has(#screen-role[style*="flex"]) .spy-new
 .locations-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    grid-template-rows: repeat(7, minmax(2.35rem, 1fr));
+    grid-template-rows: repeat(7, minmax(2.5rem, 1fr));
     gap: var(--spy-loc-row-gap, 0.28rem) var(--spy-loc-col-gap, 0.28rem);
     width: 100%;
     height: 100%;
@@ -2230,25 +2187,25 @@ body.light-theme .page-game .main-card:has(#screen-role[style*="flex"]) .spy-new
     line-height: 1.35;
 }
 
-.questions-block:empty {
-    display: none;
-}
-
 .spy-play-bottom {
     flex: 0 0 auto;
     width: 100%;
-    margin-top: 0;
-    padding: 0;
+    padding: 0.15rem 0 0.35rem;
 }
 
-/* Civilians: vote + cat just above Restart round; locations fill space above */
-.spy-play-game-ui:not(:has(.spy-round-actions--spy)) .spy-play-bottom {
-    flex: 0 0 auto;
-    margin-top: auto;
+/* Change location of "Let's vote" button for NON-spy players */
+.spy-play-game-ui:not(:has(.spy-round-actions--spy)) .spy-round-actions #vote-btn {
+    margin-bottom: 2rem;
 }
 
-.spy-play-game-ui:not(:has(.spy-round-actions--spy)) .locations-grid {
-    grid-template-rows: repeat(7, minmax(2.55rem, 1fr));
+@media (max-width: 520px) {
+    .spy-play-game-ui:not(:has(.spy-round-actions--spy)) .spy-round-actions #vote-btn {
+        margin-bottom: 0.65rem;
+    }
+}
+
+.spy-play-game-ui .locations-grid {
+    grid-template-rows: repeat(7, minmax(2.7rem, 1fr));
 }
 
 .questions-block:not(:empty) {
@@ -2256,12 +2213,14 @@ body.light-theme .page-game .main-card:has(#screen-role[style*="flex"]) .spy-new
     margin-bottom: 0.35rem;
 }
 
+/* Cat + vote: balanced gap below locations */
 .spy-play-bottom-panel {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: var(--spy-loc-row-gap) var(--spy-loc-col-gap);
     align-items: end;
     width: 100%;
+    padding-top: 0.15rem;
 }
 
 .spy-play-cat {
@@ -2326,59 +2285,108 @@ body.light-theme .page-game .main-card:has(#screen-role[style*="flex"]) .spy-new
 }
 
 @media (max-width: 520px) {
-    .spy-play-game-ui:has(.spy-round-actions--spy) .spy-play-scroll {
-        overflow-y: auto;
-        -webkit-overflow-scrolling: touch;
+    .page-game .main-card:has(#screen-locations.spy-play-screen[style*="flex"]) {
+        padding-bottom: 0.35rem;
     }
 
-    .spy-play-game-ui:not(:has(.spy-round-actions--spy)) .spy-play-scroll {
-        overflow-y: hidden;
+    .spy-play-screen {
+        --spy-loc-row-gap: 0.32rem;
+        --spy-loc-col-gap: 0.22rem;
+        --spy-section-gap: 0.35rem;
+        --spy-question-gap: 0.24rem;
     }
 
-    .spy-play-game-ui:has(.spy-round-actions--spy) .locations-grid {
-        grid-template-rows: repeat(7, minmax(1.65rem, 1fr));
-        height: auto;
-        min-height: min(100%, calc(7 * 1.85rem + 6 * var(--spy-loc-row-gap, 0.28rem)));
+
+    .spy-play-scroll {
+        flex: 1 1 0;
+        overflow: hidden;
+        margin-bottom: 0;
     }
 
-    .spy-play-game-ui:not(:has(.spy-round-actions--spy)) .locations-grid {
-        grid-template-rows: repeat(7, minmax(1.9rem, 1fr));
-        height: 100%;
+    .locations-panel {
+        flex: 1 1 0;
         min-height: 0;
+        gap: 0.16rem;
+        overflow: hidden;
+    }
+
+    .spy-play-game-ui:has(.spy-round-actions--spy) .locations-grid,
+    .spy-play-game-ui:not(:has(.spy-round-actions--spy)) .locations-grid {
+        flex: 1 1 0;
+        min-height: 0;
+        height: auto;
+        grid-template-rows: repeat(7, minmax(0, 1fr));
+    }
+
+    .locations-list-caption {
+        padding: 0.22rem 0.4rem;
+        font-size: clamp(0.64rem, 1.7vw, 0.74rem);
+        line-height: 1.15;
     }
 
     .location-card {
-        min-height: 1.65rem;
-        padding: 0.28rem 0.32rem;
-        border-radius: 9px;
+        min-height: 0;
+        padding: 0.44rem 0.36rem;
+        border-radius: 10px;
     }
 
     .location-card-label {
-        font-size: clamp(0.62rem, 2.9vw, 0.74rem);
+        font-size: clamp(0.72rem, 3.1vw, 0.86rem);
         line-height: 1.1;
+    }
+
+    .spy-play-bottom {
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+        padding: 0;
+    }
+
+    .questions-block:not(:empty) {
+        margin: var(--spy-question-gap) 0;
+        padding: 0.35rem 0.5rem;
+        font-size: 0.8rem;
+        line-height: 1.3;
     }
 
     .spy-play-bottom-panel {
         gap: var(--spy-loc-row-gap) var(--spy-loc-col-gap);
+        padding-top: 0;
+        overflow: hidden;
+        align-items: end;
     }
 
-    .spy-play-cat {
-        width: min(88px, 28vw);
-        max-height: 4.25rem;
+    /* Civilians: cat a bit larger */
+    .spy-play-game-ui:not(:has(.spy-round-actions--spy)) .spy-play-cat {
+        width: min(92px, 29vw);
+        max-height: 3.35rem;
+        object-fit: contain;
+        align-self: end;
     }
+
+    /* Spies: much larger cat — extra room beside two stacked buttons */
+    .spy-play-game-ui:has(.spy-round-actions--spy) .spy-play-cat {
+        width: min(128px, 38vw);
+        max-height: 5.75rem;
+        object-fit: contain;
+        align-self: end;
+    }
+
+
 
     .spy-round-actions {
-        gap: 0.32rem;
+        gap: 0.28rem;
     }
 
     .spy-round-actions #vote-btn,
     .spy-round-actions #spy-guess-btn {
-        padding: 0.52rem 0.55rem;
-        font-size: 0.9rem;
+        padding: 0.48rem 0.5rem;
+        font-size: 0.88rem;
     }
 
     .spy-round-actions #spy-guess-btn {
-        font-size: 0.82rem;
+        font-size: 0.8rem;
     }
 }
 
@@ -2622,7 +2630,7 @@ body.light-theme .lobby-players-panel .players-list-vertical li {
 }
 
 .spy-lobby-body .setup-form select {
-    max-width: 220px;
+    max-width: none;
     margin-left: auto;
     margin-right: auto;
 }
@@ -2774,8 +2782,22 @@ body.light-theme .lobby-players-panel .players-list-vertical li {
     margin: 0;
 }
 
+.page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) {
+    --spy-setting-control-w: 11.75rem;
+}
+
 .page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .spy-setting-control {
     flex: 0 0 auto;
+    width: var(--spy-setting-control-w);
+    max-width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .spy-setting-select {
+    width: 100%;
+    max-width: none;
+    box-sizing: border-box;
 }
 
 .page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .spy-setting-stepper {
@@ -2993,6 +3015,8 @@ body.light-theme .lobby-players-panel .players-list-vertical li {
 
     .page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .spy-setting-control {
         flex: 0 0 auto;
+        width: var(--spy-setting-control-w);
+        max-width: 100%;
         position: relative;
     }
 
@@ -3014,11 +3038,10 @@ body.light-theme .lobby-players-panel .players-list-vertical li {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 0.15rem;
-        width: 8.35rem;
-        max-width: 52%;
-        min-height: 1.75rem;
-        padding: 0.12rem 0.2rem;
+        gap: 0.2rem;
+        width: 100%;
+        min-height: 1.85rem;
+        padding: 0.14rem 0.22rem;
         border-radius: 8px;
         border: 1px solid var(--card-border);
         background: var(--input-bg);
@@ -3027,8 +3050,8 @@ body.light-theme .lobby-players-panel .players-list-vertical li {
 
     .page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .spy-stepper-arrow {
         flex: 0 0 auto;
-        width: 1.35rem;
-        height: 1.35rem;
+        width: 1.4rem;
+        height: 1.4rem;
         margin: 0;
         padding: 0;
         border: none;
@@ -3047,12 +3070,10 @@ body.light-theme .lobby-players-panel .players-list-vertical li {
     .page-game #screen-waiting.spy-lobby-screen:not(.dng-lobby-screen) .spy-stepper-label {
         flex: 1 1 auto;
         min-width: 0;
-        font-size: 0.95rem;
+        font-size: 0.92rem;
         line-height: 1.25;
         text-align: center;
         white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
         color: var(--input-text);
     }
 

@@ -22,6 +22,7 @@ let spyGuessActive = false;
 let guessSpyName = null;
 let guessSubmitted = false;
 let roundInterruptActive = false;
+let currentQuestionIdea = '';
 let sessionRestorePending = false;
 
 function completeSessionRestore() {
@@ -466,36 +467,6 @@ function openLobbyScreen() {
     syncSpyLobbyScroll();
 }
 
-function syncRestartRoundButtonWidth() {
-    const voteBtn = document.getElementById('vote-btn');
-    const restartBtn = document.getElementById('new-round-btn');
-    const playScreen = document.getElementById('screen-locations');
-    const mainCard = document.querySelector('.main-card');
-    if (!voteBtn || !restartBtn || !mainCard) return;
-
-    const showOnPlay = restartBtn.classList.contains('spy-new-round-btn--play')
-        && playScreen
-        && playScreen.style.display === 'flex';
-
-    if (!showOnPlay) {
-        restartBtn.style.marginLeft = '';
-        restartBtn.style.alignSelf = '';
-        restartBtn.style.width = '';
-        return;
-    }
-
-    requestAnimationFrame(() => {
-        restartBtn.style.width = 'auto';
-        const voteRect = voteBtn.getBoundingClientRect();
-        const restartRect = restartBtn.getBoundingClientRect();
-        const cardRect = mainCard.getBoundingClientRect();
-        const voteCenter = voteRect.left + (voteRect.width / 2);
-        const restartLeft = voteCenter - (restartRect.width / 2);
-        restartBtn.style.marginLeft = `${Math.max(0, restartLeft - cardRect.left)}px`;
-        restartBtn.style.alignSelf = 'flex-start';
-    });
-}
-
 function updateNewRoundButtonVisibility() {
     const btn = document.getElementById('new-round-btn');
     if (!btn || !currentRoomCode || !playerName) {
@@ -506,9 +477,7 @@ function updateNewRoundButtonVisibility() {
     const playScreen = document.getElementById('screen-locations').style.display === 'flex';
     const resultScreen = document.getElementById('round-result').style.display === 'block';
     const showOnPlay = playScreen && !resultScreen;
-    btn.style.display = (roleScreen || showOnPlay) ? 'inline-block' : 'none';
-    btn.classList.toggle('spy-new-round-btn--play', showOnPlay);
-    syncRestartRoundButtonWidth();
+    btn.style.display = (roleScreen || showOnPlay) ? 'inline-flex' : 'none';
 }
 
 function resetClientRoundState() {
@@ -523,6 +492,7 @@ function resetClientRoundState() {
     guessSpyName = null;
     guessSubmitted = false;
     roundInterruptActive = false;
+    currentQuestionIdea = '';
     document.getElementById('next-round-btn').style.display = 'none';
     document.getElementById('back-to-main-btn').style.display = 'none';
     document.getElementById('round-result').style.display = 'none';
@@ -682,17 +652,17 @@ function exitRoundInterruptMode() {
     guessSpyName = null;
     guessSubmitted = false;
     hideAllInterruptPanels();
+    document.getElementById('spy-play-interrupt-zone').style.display = 'none';
     const locationsScroll = document.querySelector('.spy-play-scroll');
     if (locationsScroll) locationsScroll.style.display = '';
     document.getElementById('playing-actions').style.display = 'flex';
     document.getElementById('vote-btn').style.display = 'inline-block';
-    document.getElementById('questions-block').style.display = 'block';
+    renderQuestionsBlock();
     applyRoleToLocationsScreen();
     document.getElementById('pause-timer-btn').style.display = 'inline-flex';
     document.getElementById('resume-timer-btn').style.display = 'none';
     updateSpyGuessButtonVisibility();
     updateLocationsCaptions();
-    syncRestartRoundButtonWidth();
     renderLocationsGrid();
 }
 
@@ -934,13 +904,26 @@ function renderLocationsGrid() {
 
         grid.appendChild(card);
     });
-    syncRestartRoundButtonWidth();
+}
+
+function renderQuestionsBlock() {
+    const block = document.getElementById('questions-block');
+    if (!block) return;
+    const text = currentQuestionIdea || '…';
+    block.textContent = `Question idea: ${text}`;
+    updateQuestionsBlockVisibility();
+}
+
+function updateQuestionsBlockVisibility() {
+    const block = document.getElementById('questions-block');
+    if (!block) return;
+    block.style.display = roundInterruptActive ? 'none' : '';
 }
 
 function showQuestionIdea(question) {
-    const block = document.getElementById('questions-block');
-    if (!block || !question) return;
-    block.textContent = `Question idea: ${question}`;
+    if (!question) return;
+    currentQuestionIdea = question;
+    renderQuestionsBlock();
 }
 
 function getRoundDurationMinutes(payload) {
@@ -1074,7 +1057,7 @@ function hidePlayingUI() {
 function showPlayingUI() {
     const gameUi = document.querySelector('.spy-play-game-ui');
     if (gameUi) gameUi.style.display = 'flex';
-    document.getElementById('questions-block').style.display = 'block';
+    renderQuestionsBlock();
     document.getElementById('playing-actions').style.display = 'flex';
     document.getElementById('round-result').style.display = 'none';
     document.getElementById('score-table').style.display = 'none';
@@ -1743,4 +1726,3 @@ updateLobbyCatImage(document.body.classList.contains('light-theme'));
 initSpySettingSteppers();
 
 window.addEventListener('resize', syncSpyLobbyScroll);
-window.addEventListener('resize', syncRestartRoundButtonWidth);
