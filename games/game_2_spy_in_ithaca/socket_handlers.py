@@ -135,7 +135,9 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
     def _room(code):
         return rooms.get(code)
 
+    # This function finds player name by sid
     def _player_name_by_sid(room, sid):
+        # pdata means player data
         for name, pdata in room["players"].items():
             if pdata.get("sid") == sid:
                 return name
@@ -149,25 +151,32 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         except Exception:
             return False
 
+    # Before you join a room, you have to type your name.
+    # The function below checks whether the name has already been taken by someone else.
+    # If a player reconnects (the same sid), he can have his name and his role back
     def _can_claim_player_name(room, name):
+        # Name is not chosen by any player
         if name not in room.get("players", {}):
             return True
+        # Player has reconnected - he has the same name and role
         old_sid = room["players"][name].get("sid")
         if old_sid == request.sid:
             return True
+        # Name has already been chosen. Choose another name.
         if old_sid and _is_sid_connected(old_sid):
             return False
         return True
 
-    def _resolve_player(room, room_code, data=None):
-        # Client sends player_name on actions; also maps reconnect sid to an existing player.
+    def _identify_player(room, room_code, data=None):
+        # Room doesn't exist
         if not room:
             return None
         data = data or {}
         name = (data.get("player_name") or "").strip()
         if name in room.get("players", {}):
-            if not _can_claim_player_name(room, name):
+            if not _can_claim_player_name(room, name): # The name is already taken by another player
                 return None
+            # Player reconnects - gets their old name and role back, but their sid is new
             room["players"][name]["sid"] = request.sid
             join_room(room_code)
             return name
@@ -178,10 +187,12 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
 
     def _validate_player_name(name):
         name = (name or "").strip()
+        # Name length must be 1–10 characters
         if not name or len(name) > 10:
             return None
         return name
 
+    # If a player changes their name, the order of names stays the same
     def _rename_ordered_key(mapping, old_key, new_key):
         if old_key not in mapping:
             return
@@ -189,6 +200,8 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         mapping.clear()
         mapping.update(items)
 
+    # When a player wants to change their name, we need to change their name in all parts of the game where the old name is written:
+    # For example, in the list of players, roles, voting, round results
     def _rename_player_in_room(room, old_name, new_name):
         players = room.get("players", {})
         if old_name not in players:
@@ -200,9 +213,12 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         if old_name in roles:
             _rename_ordered_key(roles, old_name, new_name)
 
+        # PLayers see their role before the beginning of the round
+        # The click OK - it means that they know their role, and they're READY to start the game
         ready = room.get("role_ready", [])
         room["role_ready"] = [new_name if n == old_name else n for n in ready]
 
+        # guess_spy is a spy who is trying to guess our secret location
         for field in ("vote_initiator", "vote_accused", "guess_spy"):
             if room.get(field) == old_name:
                 room[field] = new_name
@@ -253,6 +269,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         "role_reveal", "playing", "vote_nominate", "voting", "spy_guess", "final_vote",
     })
 
+    # Players who join late get civillian role because the spy role has already been assigned
     def _assign_late_civilian_role(room, name):
         roles = room.setdefault("roles", {})
         if roles.get(name, {}).get("is_spy"):
@@ -403,8 +420,8 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
     def _is_room_host(room, player_name):
         return bool(player_name) and player_name == room.get("host_name")
 
-    def _resolve_host(room, room_code, data=None):
-        player = _resolve_player(room, room_code, data)
+    def _identify_host(room, room_code, data=None):
+        player = _identify_player(room, room_code, data)
         if not player or not _is_room_host(room, player):
             return None
         return player
@@ -420,6 +437,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
             if pdata.get("is_bot") and name not in ready:
                 ready.append(name)
 
+    # Bots vote randomly - they're just for testing the UI
     def _bot_vote_decision():
         return random.choice(["yes", "no"])
 
@@ -484,6 +502,8 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         save_room_to_db(room_code, rooms)
         _evaluate_final_vote(room_code)
 
+    # Players see their role and click OK
+    # When everyone clicked OK, the round begins
     def _maybe_begin_playing_after_ready(room_code):
         room = _room(room_code)
         if not room or room["phase"] != "role_reveal":
@@ -506,6 +526,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         spy_setting = int(settings.get("spy_count", 1))
         return 4 if spy_setting in (0, 2) else 3
 
+    # Returns the number of spies in the game
     def _effective_spy_count(room):
         if room.get("resolved_spy_count") is not None:
             return room["resolved_spy_count"]
@@ -513,7 +534,8 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         return spy_setting if spy_setting > 0 else 1
 
     def _public_spy_count(room):
-        # spy_count 0 = "1 or 2 spies" lobby option; hide the resolved count during play.
+        # spy_count 0 means "1 or 2 spies" lobby option. Players don't know whether we have 1 or 2 spies in the game.
+        # It makes the game a bit more difficult and fun :)
         spy_setting = int(room["settings"].get("spy_count", 1))
         if spy_setting == 0 and room.get("phase") != "waiting":
             return 0
@@ -569,6 +591,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         room["timer_paused"] = False
         _stop_question_rotation(room)
 
+    # Random questions to help players
     def _init_question_deck(room):
         set_key = room["settings"].get("location_set", "modern_world")
         deck = _questions_for_location_set(set_key)
@@ -581,7 +604,6 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         deck = room["question_deck"]
         pos = room["question_deck_pos"]
         drawn = []
-        batch_seen = set()
 
         while len(drawn) < count:
             if not deck:
@@ -589,12 +611,8 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
             if pos >= len(deck):
                 random.shuffle(deck)
                 pos = 0
-            question = deck[pos]
+            drawn.append(deck[pos])
             pos += 1
-            if question in batch_seen and len(batch_seen) < len(deck):
-                continue
-            batch_seen.add(question)
-            drawn.append(question)
 
         room["question_deck_pos"] = pos
         return drawn
@@ -679,6 +697,218 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
             name for name in _players_list(room)
             if room["roles"][name]["is_spy"]
         ]
+
+    _GAME_KICK_PHASES = frozenset({
+        "role_reveal", "playing", "vote_nominate", "voting", "spy_guess", "final_vote",
+    })
+
+    def _is_player_connected(room, name):
+        pdata = room.get("players", {}).get(name)
+        if not pdata:
+            return False
+        if pdata.get("disconnected"):
+            return False
+        if pdata.get("is_bot"):
+            return True
+        return bool(pdata.get("sid"))
+
+    def _mark_player_disconnected(room, name):
+        room["players"][name]["sid"] = None
+        room["players"][name]["disconnected"] = True
+
+    def _emit_to_all_connected(room_code, room, event, payload):
+        for _name, pdata in room.get("players", {}).items():
+            sid = pdata.get("sid")
+            if sid and not pdata.get("disconnected"):
+                socketio.emit(event, payload, to=sid)
+
+    def _purge_player_from_round_state(room, player_name):
+        roles = room.get("roles", {})
+        if player_name in roles:
+            del roles[player_name]
+        ready = room.get("role_ready", [])
+        if player_name in ready:
+            ready.remove(player_name)
+        room.get("player_questions", {}).pop(player_name, None)
+        ballots = room.get("vote_ballots", {})
+        if player_name in ballots:
+            del ballots[player_name]
+        votes = room.get("votes", {})
+        if player_name in votes:
+            del votes[player_name]
+
+    def _finish_round_spy_kicked(room_code, spy_name):
+        room = _room(room_code)
+        if not room:
+            return
+        room["phase"] = "results"
+        room["votes_open"] = False
+        room["votes"] = {}
+        room["vote_ballots"] = {}
+        room["vote_accused"] = None
+        room["vote_initiator"] = None
+        room["spy_guess_active"] = False
+        room["guess_spy"] = None
+        room.pop("pending_disconnect", None)
+        _stop_timer(room)
+        room["last_result"] = {
+            "reason": "kicked",
+            "winner": None,
+            "spies": [spy_name],
+            "message": f"Round ended. Spy: {spy_name}",
+            "no_points": True,
+        }
+        save_room_to_db(room_code, rooms)
+        socketio.emit("spy_round_result", {
+            "result": room["last_result"],
+            "scoreboard": _scoreboard(room),
+            "secret_location": room.get("secret_location"),
+        }, to=room_code)
+
+    def _continue_after_player_removed(room_code, removed_name):
+        room = _room(room_code)
+        if not room:
+            return
+        phase = room.get("phase")
+        if phase == "voting":
+            accused = room.get("vote_accused")
+            if accused and accused not in room["players"]:
+                _finish_vote_failed_spies_win(
+                    room_code,
+                    "Vote failed — accused player left. Spies win this round!",
+                )
+                return
+            _evaluate_voting(room_code)
+        elif phase == "final_vote":
+            _evaluate_final_vote(room_code)
+        elif phase == "vote_nominate" and removed_name == room.get("vote_initiator"):
+            _cancel_voting(room_code, f"{removed_name} was removed. Vote cancelled.")
+        elif phase == "spy_guess" and removed_name == room.get("guess_spy"):
+            room["phase"] = "playing"
+            room["spy_guess_active"] = False
+            room["guess_spy"] = None
+            save_room_to_db(room_code, rooms)
+            _resume_round_timer(room_code)
+        elif phase in ("playing", "role_reveal"):
+            _broadcast_public_state(room_code)
+
+    def _kick_player(room_code, target, kicker=None):
+        room = _room(room_code)
+        if not room or target not in room.get("players", {}):
+            return False, "Player not found"
+
+        if kicker and target == kicker:
+            return False, "You cannot remove yourself"
+
+        phase = room.get("phase")
+        in_lobby = phase == "waiting" and not room.get("game_started")
+        in_game = phase in _GAME_KICK_PHASES
+
+        if not in_lobby and not in_game:
+            return False, "Cannot remove players right now"
+
+        if in_lobby:
+            if kicker != room.get("host_name"):
+                return False, "Only the host can remove players"
+            if target == room.get("host_name"):
+                return False, "You cannot remove yourself"
+        elif in_game and kicker != room.get("host_name"):
+            return False, "Only the host can remove players"
+
+        sole_spy_removed = False
+        if in_game and room.get("roles"):
+            spies_before = _spy_names(room)
+            sole_spy_removed = target in spies_before and len(spies_before) == 1
+
+        target_sid = room["players"][target].get("sid")
+        _purge_player_from_round_state(room, target)
+
+        pending = room.get("pending_disconnect")
+        if pending and pending.get("player") == target:
+            room.pop("pending_disconnect", None)
+
+        _remove_player_from_room(room_code, target)
+
+        if target_sid:
+            socketio.emit("spy_player_kicked", {"player": target}, to=target_sid)
+
+        room = _room(room_code)
+        if not room:
+            return True, None
+
+        save_room_to_db(room_code, rooms)
+
+        if sole_spy_removed:
+            _finish_round_spy_kicked(room_code, target)
+            return True, None
+
+        _continue_after_player_removed(room_code, target)
+        return True, None
+
+    def _emit_disconnect_prompt(room_code, disconnected_name):
+        room = _room(room_code)
+        if not room:
+            return
+        is_host = disconnected_name == room.get("host_name")
+        payload = {
+            "player": disconnected_name,
+            "is_host": is_host,
+            "message": f"{disconnected_name} disconnected. Keep playing?",
+        }
+        if is_host:
+            _emit_to_all_connected(room_code, room, "spy_disconnect_prompt", payload)
+            return
+        host_name = room.get("host_name")
+        host_sid = None
+        if host_name and host_name in room["players"]:
+            host_pdata = room["players"][host_name]
+            host_sid = host_pdata.get("sid")
+        if host_sid and not host_pdata.get("disconnected"):
+            socketio.emit("spy_disconnect_prompt", payload, to=host_sid)
+        else:
+            _emit_to_all_connected(room_code, room, "spy_disconnect_prompt", payload)
+
+    def _resolve_disconnect_choice(room_code, choice, resolver):
+        room = _room(room_code)
+        if not room:
+            return False
+        pending = room.get("pending_disconnect")
+        if not pending or pending.get("resolved"):
+            return False
+
+        disconnected = pending.get("player")
+        if not disconnected or disconnected not in room["players"]:
+            room.pop("pending_disconnect", None)
+            save_room_to_db(room_code, rooms)
+            return False
+
+        is_host_dc = disconnected == room.get("host_name")
+        host_name = room.get("host_name")
+        if is_host_dc:
+            if not _is_player_connected(room, resolver):
+                return False
+        elif _is_player_connected(room, host_name):
+            if resolver != host_name:
+                return False
+        elif not _is_player_connected(room, resolver):
+            return False
+
+        pending["resolved"] = True
+        room.pop("pending_disconnect", None)
+        save_room_to_db(room_code, rooms)
+        socketio.emit("spy_disconnect_dismissed", {}, to=room_code)
+
+        if choice == "keep":
+            return True
+        if choice == "kick":
+            _kick_player(room_code, disconnected, kicker=resolver)
+            return True
+        if choice == "new_round":
+            if _return_to_waiting_lobby(room_code):
+                socketio.emit("spy_next_round_ready", {}, to=room_code)
+                _broadcast_public_state(room_code)
+            return True
+        return False
 
     def _format_spy_names(spies):
         if not spies:
@@ -817,8 +1047,9 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         if not room or room["phase"] != "final_vote":
             return
         players = _players_list(room)
+        connected = [p for p in players if _is_player_connected(room, p)]
         votes = room.get("votes", {})
-        if len(votes) < len(players):
+        if len(votes) < len(connected):
             return
 
         for voter, target in votes.items():
@@ -827,7 +1058,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
 
         accused = None
         for candidate in players:
-            others = [p for p in players if p != candidate]
+            others = [p for p in connected if p != candidate]
             if all(votes.get(p) == candidate for p in others):
                 accused = candidate
                 break
@@ -893,6 +1124,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         return [
             p for p in _players_list(room)
             if p != accused and p != initiator
+            and _is_player_connected(room, p)
         ]
 
     def _finish_vote_failed_spies_win(room_code, message):
@@ -1192,6 +1424,10 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
                 return
             # Same name reconnecting - update sid, do not add a duplicate player.
             room["players"][name]["sid"] = request.sid
+            room["players"][name].pop("disconnected", None)
+            if room.get("pending_disconnect", {}).get("player") == name:
+                room.pop("pending_disconnect", None)
+                socketio.emit("spy_disconnect_dismissed", {}, to=room_code)
             join_room(room_code)
             save_room_to_db(room_code, rooms)
             emit("spy_room_created", {
@@ -1264,7 +1500,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
             emit("rename_error", {"message": "Room not found"}, to=request.sid)
             return
 
-        old_name = _resolve_player(room, room_code, data)
+        old_name = _identify_player(room, room_code, data)
         if not old_name:
             emit("rename_error", {"message": "You can only rename yourself"}, to=request.sid)
             return
@@ -1336,7 +1572,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         if room["phase"] != "waiting":
             emit("error", {"message": "The game has already started"})
             return
-        if not _resolve_host(room, room_code, data):
+        if not _identify_host(room, room_code, data):
             emit("error", {"message": "Only the host can start with bots"})
             return
 
@@ -1357,23 +1593,36 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         if not room:
             emit("error", {"message": "Room not found"})
             return
-        if room["phase"] != "waiting":
-            emit("error", {"message": "You can only remove players before the game starts"})
-            return
-        if not _resolve_host(room, room_code, data):
-            emit("error", {"message": "Only the host can remove players"})
-            return
-        if not target or target not in room["players"]:
+        if not target:
             emit("error", {"message": "Player not found"})
             return
-        if target == room.get("host_name"):
-            emit("error", {"message": "You cannot remove yourself"})
+
+        kicker = _identify_player(room, room_code, data)
+        if not kicker:
+            emit("error", {"message": "Player not found"})
             return
 
-        target_sid = room["players"][target].get("sid")
-        _remove_player_from_room(room_code, target)
-        if target_sid:
-            socketio.emit("spy_player_kicked", {"player": target}, to=target_sid)
+        ok, err = _kick_player(room_code, target, kicker=kicker)
+        if not ok and err:
+            emit("error", {"message": err})
+
+    @socketio.on("spy_disconnect_choice")
+    def handle_spy_disconnect_choice(data):
+        room_code = data.get("room_code")
+        choice = (data.get("choice") or "").strip()
+        room = _room(room_code)
+        if not room:
+            emit("error", {"message": "Room not found"})
+            return
+        resolver = _identify_player(room, room_code, data)
+        if not resolver:
+            emit("error", {"message": "Player not found"})
+            return
+        if choice not in ("keep", "kick", "new_round"):
+            emit("error", {"message": "Invalid choice"})
+            return
+        if not _resolve_disconnect_choice(room_code, choice, resolver):
+            emit("error", {"message": "Could not resolve disconnect"})
 
     def _start_game_from_lobby(room_code, error_sid=None):
         room = _room(room_code)
@@ -1416,7 +1665,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         room = _room(room_code)
         if not room or room["phase"] != "role_reveal":
             return
-        player = _resolve_player(room, room_code, data)
+        player = _identify_player(room, room_code, data)
         if not player:
             return
         ready = room.setdefault("role_ready", [])
@@ -1523,7 +1772,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         if room["phase"] != "playing":
             emit("error", {"message": "You cannot start a vote right now"})
             return
-        initiator = _resolve_player(room, room_code, data)
+        initiator = _identify_player(room, room_code, data)
         if not initiator:
             emit("error", {"message": "Player not found in room. Please refresh and rejoin."})
             return
@@ -1561,7 +1810,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         if room["phase"] != "vote_nominate":
             emit("error", {"message": "Nomination is not active. Start a vote first."})
             return
-        initiator = _resolve_player(room, room_code, data)
+        initiator = _identify_player(room, room_code, data)
         if not initiator:
             emit("error", {"message": "Player not found in room. Please refresh and rejoin."})
             return
@@ -1607,7 +1856,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         room = _room(room_code)
         if not room or room["phase"] != "voting" or not room.get("votes_open"):
             return
-        voter = _resolve_player(room, room_code, data)
+        voter = _identify_player(room, room_code, data)
         if not voter or not target:
             return
         if not _record_ballot(room, voter, target, "yes"):
@@ -1632,7 +1881,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         room = _room(room_code)
         if not room or room["phase"] != "voting" or not room.get("votes_open"):
             return
-        voter = _resolve_player(room, room_code, data)
+        voter = _identify_player(room, room_code, data)
         if not voter or not target:
             return
         if not _record_ballot(room, voter, target, "no"):
@@ -1657,7 +1906,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         room = _room(room_code)
         if not room or room["phase"] != "final_vote" or not room.get("votes_open"):
             return
-        voter = _resolve_player(room, room_code, data)
+        voter = _identify_player(room, room_code, data)
         if not voter or not target:
             return
         if target not in room["players"]:
@@ -1688,7 +1937,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         if room["phase"] != "playing":
             emit("error", {"message": "You cannot guess the location right now"})
             return
-        player_name = _resolve_player(room, room_code, data)
+        player_name = _identify_player(room, room_code, data)
         if not player_name or not room["roles"].get(player_name, {}).get("is_spy"):
             emit("error", {"message": "Only the spy can guess the location"})
             return
@@ -1712,7 +1961,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         room = _room(room_code)
         if not room or room["phase"] != "spy_guess":
             return
-        player_name = _resolve_player(room, room_code, data)
+        player_name = _identify_player(room, room_code, data)
         if not player_name or player_name != room.get("guess_spy"):
             return
         if not guessed_location:
@@ -1781,7 +2030,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         if not room:
             emit("error", {"message": "Room not found"})
             return
-        if not _resolve_player(room, room_code, data):
+        if not _identify_player(room, room_code, data):
             emit("error", {"message": "Player not found"})
             return
         phase = room.get("phase")
@@ -1811,7 +2060,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         room = _room(room_code)
         if not room:
             return
-        player_name = _resolve_player(room, room_code, data)
+        player_name = _identify_player(room, room_code, data)
         if not player_name:
             return
         phase = room.get("phase")
@@ -1861,15 +2110,33 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
                 continue
 
             phase = room.get("phase")
-            if phase == "voting":
-                _remove_player_from_room(room_code, name)
+            if phase == "playing":
+                _mark_player_disconnected(room, name)
+                pending = room.get("pending_disconnect")
+                if not pending or not pending.get("player"):
+                    room["pending_disconnect"] = {"player": name, "resolved": False}
+                    save_room_to_db(room_code, rooms)
+                    _emit_disconnect_prompt(room_code, name)
+                else:
+                    save_room_to_db(room_code, rooms)
+            elif phase == "voting":
+                _mark_player_disconnected(room, name)
                 save_room_to_db(room_code, rooms)
-                _on_player_left_during_voting(room_code, name)
+                socketio.emit("spy_player_disconnected", {
+                    "player": name,
+                    "phase": phase,
+                    "can_vote": True,
+                    "message": (
+                        f"{name} disconnected. "
+                        "You can still vote for them, or remove them with kick."
+                    ),
+                }, to=room_code)
+                _evaluate_voting(room_code)
             elif phase == "final_vote":
                 votes = room.get("votes", {})
                 if name in votes:
                     del votes[name]
-                _remove_player_from_room(room_code, name)
+                _mark_player_disconnected(room, name)
                 save_room_to_db(room_code, rooms)
                 room = _room(room_code)
                 if room and room.get("players"):

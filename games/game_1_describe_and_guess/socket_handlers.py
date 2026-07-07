@@ -212,7 +212,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         save_room_to_db(room_code, rooms)
         return True
 
-    def _resolve_explainer(room_data):
+    def _identify_explainer(room_data):
         players = _players_list(room_data)
         if not players:
             return None
@@ -244,7 +244,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
 
     def _start_round(room_code):
         room_data = rooms[room_code]
-        explainer = _resolve_explainer(room_data)
+        explainer = _identify_explainer(room_data)
         if not explainer:
             return False
         room_data['game_started'] = True

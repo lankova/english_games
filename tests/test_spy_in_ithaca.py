@@ -922,13 +922,16 @@ class TestSpyVoting:
         time.sleep(0.2)
 
         post_disconnect = initiator_client.get_received()
-        left_events = [e for e in post_disconnect if e['name'] == 'spy_vote_player_left']
-        assert left_events, 'Expected vote continues notification'
-        assert voter_name in left_events[0]['args'][0]['message']
-        assert voter_name not in rooms_game2[room_code]['players']
+        disconnected_events = [
+            e for e in post_disconnect if e['name'] == 'spy_player_disconnected'
+        ]
+        assert disconnected_events, 'Expected disconnected-player notification'
+        assert voter_name in disconnected_events[0]['args'][0]['message']
+        assert voter_name in rooms_game2[room_code]['players']
+        assert rooms_game2[room_code]['players'][voter_name]['sid'] is None
 
         results = [e for e in post_disconnect if e['name'] == 'spy_round_result']
-        assert results, 'Vote should resolve after voter leaves'
+        assert results, 'Vote should resolve after disconnected voter is skipped'
         assert results[0]['args'][0]['result']['winner'] == 'civilians'
 
         for client in clients:
@@ -1141,6 +1144,163 @@ class TestSpyNewRound:
         assert room['players']['Bob']['score'] == 1
         assert room['roles'] == {}
         host.disconnect()
+
+
+@allure.epic("Spy in Ithaca")
+@allure.feature("Kick and disconnect")
+class TestSpyKickAndDisconnect:
+
+    @allure.story("Kick during game")
+    @allure.title("Kicking the only spy ends the round without points")
+    def test_kick_sole_spy_ends_round_without_points(self, guest_client_factory, monkeypatch):
+        def fixed_sample(population, k):
+            if k == 1 and 'Bob' in population:
+                return ['Bob']
+            return random_module.sample(population, k)
+
+        monkeypatch.setattr(
+            'games.game_2_spy_in_ithaca.socket_handlers.random.sample',
+            fixed_sample,
+        )
+
+        host = socketio.test_client(app)
+        bob = guest_client_factory()
+        carol = guest_client_factory()
+        room_code = _create_room(host)
+        _join(bob, room_code, 'Bob')
+        _join(carol, room_code, 'Carol')
+
+        clients = [host, bob, carol]
+        names = ['Alice', 'Bob', 'Carol']
+        _enter_playing(clients, room_code, names)
+
+        room = rooms_game2[room_code]
+        spy_name = 'Bob'
+        scores_before = {n: room['players'][n]['score'] for n in names}
+
+        host.emit('spy_kick_player', {
+            'room_code': room_code,
+            'player_name': 'Alice',
+            'target_name': spy_name,
+        })
+        time.sleep(0.2)
+
+        received = host.get_received()
+        results = [e for e in received if e['name'] == 'spy_round_result']
+        assert results, 'Expected round result after kicking sole spy'
+        result = results[0]['args'][0]['result']
+        assert result['reason'] == 'kicked'
+        assert result['message'] == f'Round ended. Spy: {spy_name}'
+        assert result.get('no_points') is True
+        assert room['phase'] == 'results'
+        for name in room['players']:
+            assert room['players'][name]['score'] == scores_before[name]
+        assert spy_name not in room['players']
+
+        for client in clients:
+            try:
+                client.disconnect()
+            except RuntimeError:
+                pass
+
+    @allure.story("Kick during game")
+    @allure.title("Kicking a civilian lets the round continue")
+    def test_kick_civilian_continues_round(self, guest_client_factory):
+        host = socketio.test_client(app)
+        bob = guest_client_factory()
+        carol = guest_client_factory()
+        room_code = _create_room(host)
+        _join(bob, room_code, 'Bob')
+        _join(carol, room_code, 'Carol')
+
+        clients = [host, bob, carol]
+        names = ['Alice', 'Bob', 'Carol']
+        _enter_playing(clients, room_code, names)
+
+        room = rooms_game2[room_code]
+        spy_name = _spy_names(room_code)[0]
+        civilian = [n for n in names if n != spy_name and n != 'Alice'][0]
+
+        host.emit('spy_kick_player', {
+            'room_code': room_code,
+            'player_name': 'Alice',
+            'target_name': civilian,
+        })
+        time.sleep(0.2)
+
+        received = host.get_received()
+        assert not [e for e in received if e['name'] == 'spy_round_result']
+        assert room['phase'] == 'playing'
+        assert civilian not in room['players']
+        assert spy_name in room['players']
+
+        for client in clients:
+            try:
+                client.disconnect()
+            except RuntimeError:
+                pass
+
+    @allure.story("Disconnect during playing")
+    @allure.title("Host sees disconnect prompt when a guest drops mid-round")
+    def test_guest_disconnect_prompts_host(self, guest_client_factory):
+        host = socketio.test_client(app)
+        bob = guest_client_factory()
+        carol = guest_client_factory()
+        room_code = _create_room(host)
+        _join(bob, room_code, 'Bob')
+        _join(carol, room_code, 'Carol')
+
+        clients = [host, bob, carol]
+        _enter_playing(clients, room_code, ['Alice', 'Bob', 'Carol'])
+        for client in clients:
+            client.get_received()
+
+        bob.disconnect()
+        time.sleep(0.2)
+
+        received = host.get_received()
+        prompts = [e for e in received if e['name'] == 'spy_disconnect_prompt']
+        assert prompts, 'Host should receive disconnect prompt'
+        assert prompts[0]['args'][0]['player'] == 'Bob'
+        assert 'Bob disconnected. Keep playing?' in prompts[0]['args'][0]['message']
+
+        for client in clients:
+            if client is not bob:
+                try:
+                    client.disconnect()
+                except RuntimeError:
+                    pass
+
+    @allure.story("Disconnect during playing")
+    @allure.title("All players see prompt when host disconnects mid-round")
+    def test_host_disconnect_prompts_everyone(self, guest_client_factory):
+        host = socketio.test_client(app)
+        bob = guest_client_factory()
+        carol = guest_client_factory()
+        room_code = _create_room(host)
+        _join(bob, room_code, 'Bob')
+        _join(carol, room_code, 'Carol')
+
+        clients = [host, bob, carol]
+        _enter_playing(clients, room_code, ['Alice', 'Bob', 'Carol'])
+        for client in clients:
+            client.get_received()
+
+        host.disconnect()
+        time.sleep(0.2)
+
+        for guest_client in (bob, carol):
+            received = guest_client.get_received()
+            prompts = [e for e in received if e['name'] == 'spy_disconnect_prompt']
+            assert prompts, 'Guests should receive disconnect prompt when host drops'
+            assert prompts[0]['args'][0]['player'] == 'Alice'
+            assert prompts[0]['args'][0]['is_host'] is True
+
+        for client in clients:
+            try:
+                client.disconnect()
+            except RuntimeError:
+                pass
 
 
 # ============

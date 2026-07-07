@@ -826,7 +826,7 @@ Game links are styled as buttons for better UX. */
     position: fixed;
     top: calc(1rem + 2.5rem + 0.85rem);
     right: calc(1rem + 0.25rem);
-    z-index: 99;
+    z-index: 98;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -874,6 +874,71 @@ body.light-theme .game-restart-round-btn {
 body.light-theme .dng-restart-round-btn:hover,
 body.light-theme .game-restart-round-btn:hover {
     opacity: 0.38;
+}
+
+.game-kick-player-btn {
+    position: fixed;
+    top: calc(1rem + 2.5rem + 0.85rem);
+    right: calc(1rem + 0.25rem);
+    z-index: 99;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    margin: 0;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    opacity: 0.22;
+    font-size: 1.1rem;
+    font-weight: 400;
+    line-height: 1;
+    cursor: pointer;
+    border-radius: 50%;
+    transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+body.spy-in-game-host .game-kick-player-btn {
+    top: calc(1rem + 2.5rem + 0.85rem + 2rem + 0.85rem);
+}
+
+.game-kick-player-btn:hover,
+.game-kick-player-btn.is-active {
+    opacity: 0.45;
+    color: var(--text-secondary);
+}
+
+.game-kick-player-btn:focus-visible {
+    outline: 1px solid color-mix(in srgb, var(--text-muted) 50%, transparent);
+    outline-offset: 2px;
+    opacity: 0.5;
+}
+
+body.light-theme .game-kick-player-btn {
+    opacity: 0.18;
+}
+
+body.light-theme .game-kick-player-btn:hover,
+body.light-theme .game-kick-player-btn.is-active {
+    opacity: 0.38;
+}
+
+.page-game #screen-locations .player-pill.player-pill-kickable {
+    cursor: pointer;
+    border-color: color-mix(in srgb, #c44 45%, var(--card-border));
+}
+
+.page-game #screen-locations .player-pill.is-disconnected {
+    opacity: 0.55;
+    font-style: italic;
+}
+
+.exit-dialog-buttons--stack .exit-btn {
+    text-align: center;
+    white-space: normal;
+    line-height: 1.35;
 }
 
 .guessing-timer-label {
@@ -976,7 +1041,7 @@ body.light-theme .game-restart-round-btn:hover {
     display: none;
     position: fixed;
     inset: 0;
-    z-index: 30;
+    z-index: 200;
     align-items: center;
     justify-content: center;
     padding: 1.25rem;
@@ -1003,6 +1068,82 @@ body.light-theme .game-restart-round-btn:hover {
     text-align: center;
     box-shadow: 0 12px 36px rgba(0, 0, 0, 0.55);
     animation: exit-panel-in 0.32s ease forwards;
+}
+
+.exit-dialog-close {
+    position: absolute;
+    top: 0.65rem;
+    right: 0.65rem;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 1.35rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: color 0.15s ease, background 0.15s ease;
+}
+
+.exit-dialog-close:hover {
+    color: var(--text-secondary);
+    background: color-mix(in srgb, var(--text-muted) 12%, transparent);
+}
+
+.exit-dialog-panel--kick {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+}
+
+.exit-dialog-panel--kick .exit-dialog-message {
+    margin-bottom: 0;
+}
+
+.kick-player-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: min(14rem, 40vh);
+    overflow-y: auto;
+}
+
+.kick-player-list-item {
+    padding: 0.65rem 0.85rem;
+    border-radius: 10px;
+    border: 1px solid var(--card-border);
+    background: var(--input-bg);
+    color: var(--input-text);
+    font-size: 1rem;
+    text-align: center;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.kick-player-list-item:hover {
+    background: color-mix(in srgb, var(--btn-bg) 18%, var(--input-bg));
+}
+
+.kick-player-list-item.is-selected {
+    border-color: color-mix(in srgb, var(--accent) 55%, var(--card-border));
+    background: color-mix(in srgb, var(--accent) 14%, var(--input-bg));
+    font-weight: 600;
+}
+
+.kick-pick-ok-btn {
+    align-self: center;
+    min-width: 6rem;
+}
+
+.kick-pick-ok-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
 }
 
 .exit-dialog-message {

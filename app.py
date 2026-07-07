@@ -1,17 +1,28 @@
 from gevent import monkey
 monkey.patch_all()
 
-from flask import Flask, render_template, request
+from flask import Flask, render_template
 from flask_socketio import SocketIO
 import os
-from shared.database import init_db, save_room_to_db, load_rooms_from_db
+from shared.database import save_room_to_db
 from shared.utils import generate_room_code
 
 # Initialize Flask app
 app = Flask(__name__)
+# TODO: move to environment variable
 app.config['SECRET_KEY'] = 'my_secret_key'
 
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins=[
+    "http://127.0.0.1:5000",
+    "https://lankova.tech",
+    "https://www.lankova.tech",
+    "http://lankova.tech",
+    "http://www.lankova.tech",
+    "https://english-games.ru",
+    "https://www.english-games.ru",
+    "http://english-games.ru",
+    "http://www.english-games.ru",
+])
 
 rooms_game1 = {}
 rooms_game2 = {}
@@ -19,7 +30,7 @@ rooms_game2 = {}
 
 @app.route('/')
 def index():
-    """Home page with game selection"""
+    # Home page with game selection
     return render_template('index.html')
 
 # Register Game 1 - Describe & Guess
@@ -39,7 +50,7 @@ register_handlers_g2(socketio, rooms_game2, save_room_to_db, generate_room_code)
 # ------ RUN SERVER ------
 
 if __name__ == '__main__':
-    # Use environment variable to control debug mode: True locally, False in production
+    # environment variable is used for debug mode control: True locally, False in production
     debug_mode = os.environ.get('FLASK_DEBUG', 'True') == 'True'
     socketio.run(app, debug=False, host='0.0.0.0', port=5000)
 

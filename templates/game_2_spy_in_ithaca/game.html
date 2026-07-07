@@ -26,6 +26,15 @@
         </svg>
     </button>
 
+    <button
+        id="game-kick-btn"
+        class="game-kick-player-btn"
+        type="button"
+        style="display: none;"
+        title="Remove player"
+        aria-label="Remove player"
+    >&times;</button>
+
     <div class="main-card"> <!-- Light card with rounded corners - purely decorative -->
 
         <!-- Screen 1: enter your name -->
@@ -347,18 +356,41 @@
         </div>
     </div>
 
-    <div id="new-round-dialog" class="exit-dialog" aria-hidden="true">
-        <div class="exit-dialog-backdrop" id="new-round-dialog-backdrop"></div>
-        <div class="exit-dialog-panel" role="dialog" aria-labelledby="new-round-dialog-message">
-            <p id="new-round-dialog-message" class="exit-dialog-message">
-                Are you sure you want to start a new round?
-            </p>
+    <div id="kick-pick-dialog" class="exit-dialog" aria-hidden="true">
+        <div class="exit-dialog-backdrop" id="kick-pick-dialog-backdrop"></div>
+        <div class="exit-dialog-panel exit-dialog-panel--kick" role="dialog" aria-labelledby="kick-pick-dialog-message">
+            <button type="button" class="exit-dialog-close" id="kick-pick-dialog-close" aria-label="Close">&times;</button>
+            <p id="kick-pick-dialog-message" class="exit-dialog-message">Choose the player to kick:</p>
+            <ul id="kick-player-list" class="kick-player-list" role="listbox" aria-label="Player to kick"></ul>
+            <button type="button" id="kick-pick-ok-btn" class="ok-button kick-pick-ok-btn" disabled>OK</button>
+        </div>
+    </div>
+
+    <div id="kick-confirm-dialog" class="exit-dialog" aria-hidden="true">
+        <div class="exit-dialog-backdrop" id="kick-confirm-dialog-backdrop"></div>
+        <div class="exit-dialog-panel" role="dialog" aria-labelledby="kick-confirm-message">
+            <button type="button" class="exit-dialog-close" id="kick-confirm-dialog-close" aria-label="Close">&times;</button>
+            <p id="kick-confirm-message" class="exit-dialog-message"></p>
             <div class="exit-dialog-buttons">
-                <button type="button" id="new-round-cancel-btn" class="exit-btn exit-btn--stay">
-                    No, keep playing
+                <button type="button" id="kick-confirm-cancel-btn" class="exit-btn exit-btn--stay"></button>
+                <button type="button" id="kick-confirm-confirm-btn" class="exit-btn exit-btn--confirm"></button>
+            </div>
+        </div>
+    </div>
+
+    <div id="disconnect-choice-dialog" class="exit-dialog" aria-hidden="true">
+        <div class="exit-dialog-backdrop" id="disconnect-choice-dialog-backdrop"></div>
+        <div class="exit-dialog-panel" role="dialog" aria-labelledby="disconnect-choice-message">
+            <p id="disconnect-choice-message" class="exit-dialog-message"></p>
+            <div class="exit-dialog-buttons exit-dialog-buttons--stack">
+                <button type="button" id="disconnect-choice-keep-btn" class="exit-btn exit-btn--stay" data-choice="keep">
+                    Yes, let's keep playing and hope the player comes back
                 </button>
-                <button type="button" id="new-round-confirm-btn" class="exit-btn exit-btn--confirm">
-                    Yes, start a new round
+                <button type="button" id="disconnect-choice-kick-btn" class="exit-btn exit-btn--confirm" data-choice="kick">
+                    Continue the round but kick the disconnected player
+                </button>
+                <button type="button" id="disconnect-choice-new-round-btn" class="exit-btn exit-btn--confirm" data-choice="new_round">
+                    No, start a new round
                 </button>
             </div>
         </div>

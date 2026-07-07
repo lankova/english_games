@@ -11,6 +11,9 @@ let locationsData = null;
 let playersListCache = [];
 let roomHostName = null;
 let lobbyKickMode = false;
+let pendingKickTarget = null;
+let kickPickSelection = null;
+let disconnectedPlayers = new Set();
 let localMarkedLocations = new Set();
 let localCrossedPlayers = new Set();
 
@@ -173,10 +176,12 @@ function isBotPlayer(name) {
 function applyRoomHostName(hostName) {
     if (hostName) {
         roomHostName = hostName;
+        updateNewRoundButtonVisibility();
         return;
     }
     if (playerName && playersListCache.length > 0 && playersListCache[0] === playerName) {
         roomHostName = playerName;
+        updateNewRoundButtonVisibility();
     }
 }
 
@@ -239,6 +244,138 @@ function createKickButton(name) {
         emitWithPlayer('spy_kick_player', { target_name: name });
     });
     return kickBtn;
+}
+
+function renderKickPlayerList(players) {
+    const list = document.getElementById('kick-player-list');
+    if (!list) return;
+
+    kickPickSelection = null;
+    const others = (players || []).filter((n) => n !== playerName);
+    list.innerHTML = '';
+    others.forEach((name) => {
+        const li = document.createElement('li');
+        li.className = 'kick-player-list-item';
+        li.textContent = name;
+        li.setAttribute('role', 'option');
+        li.addEventListener('click', () => {
+            kickPickSelection = name;
+            list.querySelectorAll('.kick-player-list-item').forEach((item) => {
+                item.classList.toggle('is-selected', item === li);
+            });
+            syncKickPickOkButton();
+        });
+        list.appendChild(li);
+    });
+    syncKickPickOkButton();
+}
+
+function syncKickPickOkButton() {
+    const btn = document.getElementById('kick-pick-ok-btn');
+    if (btn) btn.disabled = !kickPickSelection;
+}
+
+function showKickPickDialog() {
+    renderKickPlayerList(playersListCache);
+    const dialog = document.getElementById('kick-pick-dialog');
+    if (dialog) {
+        dialog.classList.add('is-open');
+        dialog.setAttribute('aria-hidden', 'false');
+    }
+}
+
+function hideKickPickDialog() {
+    const dialog = document.getElementById('kick-pick-dialog');
+    if (dialog) {
+        dialog.classList.remove('is-open');
+        dialog.setAttribute('aria-hidden', 'true');
+    }
+    kickPickSelection = null;
+    const list = document.getElementById('kick-player-list');
+    if (list) {
+        list.querySelectorAll('.kick-player-list-item.is-selected').forEach((item) => {
+            item.classList.remove('is-selected');
+        });
+    }
+    syncKickPickOkButton();
+}
+
+function proceedKickPickDialog() {
+    if (!kickPickSelection) return;
+    const target = kickPickSelection;
+    hideKickPickDialog();
+    showKickConfirmDialog(target);
+}
+
+function updateGameKickButtonVisibility() {
+    const btn = document.getElementById('game-kick-btn');
+    if (!btn) return;
+    const playScreen = document.getElementById('screen-locations').style.display === 'flex';
+    const resultScreen = document.getElementById('round-result').style.display === 'block';
+    const visible = playScreen && !resultScreen && isRoomHost();
+    btn.style.display = visible ? 'inline-flex' : 'none';
+    document.body.classList.toggle('spy-in-game-host', visible);
+    if (!visible) {
+        hideKickPickDialog();
+        hideKickConfirmDialog();
+    }
+}
+
+function showKickConfirmDialog(name) {
+    pendingKickTarget = name;
+    const dialog = document.getElementById('kick-confirm-dialog');
+    const message = document.getElementById('kick-confirm-message');
+    const cancelBtn = document.getElementById('kick-confirm-cancel-btn');
+    const confirmBtn = document.getElementById('kick-confirm-confirm-btn');
+    if (message) {
+        message.textContent = `Are you sure you want to remove ${name} from the game?`;
+    }
+    if (cancelBtn) {
+        cancelBtn.textContent = `No, let's keep ${name} in the game`;
+    }
+    if (confirmBtn) {
+        confirmBtn.textContent = `Yes, kick ${name}`;
+    }
+    if (dialog) {
+        dialog.classList.add('is-open');
+        dialog.setAttribute('aria-hidden', 'false');
+    }
+}
+
+function hideKickConfirmDialog() {
+    pendingKickTarget = null;
+    const dialog = document.getElementById('kick-confirm-dialog');
+    if (dialog) {
+        dialog.classList.remove('is-open');
+        dialog.setAttribute('aria-hidden', 'true');
+    }
+}
+
+function showDisconnectChoiceDialog(data) {
+    const dialog = document.getElementById('disconnect-choice-dialog');
+    const message = document.getElementById('disconnect-choice-message');
+    if (message) {
+        message.textContent = data.message || `${data.player} disconnected. Keep playing?`;
+    }
+    if (dialog) {
+        dialog.classList.add('is-open');
+        dialog.setAttribute('aria-hidden', 'false');
+    }
+}
+
+function hideDisconnectChoiceDialog() {
+    const dialog = document.getElementById('disconnect-choice-dialog');
+    if (dialog) {
+        dialog.classList.remove('is-open');
+        dialog.setAttribute('aria-hidden', 'true');
+    }
+}
+
+function confirmKickPlayer() {
+    if (!pendingKickTarget) return;
+    emitWithPlayer('spy_kick_player', { target_name: pendingKickTarget });
+    disconnectedPlayers.delete(pendingKickTarget);
+    hideKickConfirmDialog();
 }
 
 function getRenameOptions() {
@@ -335,6 +472,9 @@ function renderGamePlayers(names) {
         if (localCrossedPlayers.has(name)) {
             pill.classList.add('is-crossed');
         }
+        if (disconnectedPlayers.has(name)) {
+            pill.classList.add('is-disconnected');
+        }
         pill.addEventListener('click', () => {
             if (localCrossedPlayers.has(name)) {
                 localCrossedPlayers.delete(name);
@@ -354,6 +494,7 @@ function updatePlayersEverywhere(names) {
     renderWaitingPlayers(playersListCache);
     renderGamePlayers(playersListCache);
     populateVoteNominateSelect(playersListCache);
+    renderKickPlayerList(playersListCache);
     syncSpyLobbyScroll();
 }
 
@@ -471,19 +612,23 @@ function updateNewRoundButtonVisibility() {
     const btn = document.getElementById('new-round-btn');
     if (!btn || !currentRoomCode || !playerName) {
         if (btn) btn.style.display = 'none';
+        updateGameKickButtonVisibility();
         return;
     }
     const roleScreen = document.getElementById('screen-role').style.display === 'flex';
     const playScreen = document.getElementById('screen-locations').style.display === 'flex';
     const resultScreen = document.getElementById('round-result').style.display === 'block';
     const showOnPlay = playScreen && !resultScreen;
-    btn.style.display = (roleScreen || showOnPlay) ? 'inline-flex' : 'none';
+    const showRestart = isRoomHost() && (roleScreen || showOnPlay);
+    btn.style.display = showRestart ? 'inline-flex' : 'none';
+    updateGameKickButtonVisibility();
 }
 
 function resetClientRoundState() {
     myRole = null;
     localMarkedLocations = new Set();
     localCrossedPlayers = new Set();
+    disconnectedPlayers = new Set();
     myVoteSubmitted = false;
     currentVoteAccused = null;
     currentVoteInitiator = null;
@@ -1086,6 +1231,14 @@ function getRoundResultView(data) {
         };
     }
 
+    if (result.reason === 'kicked') {
+        return {
+            message: result.message || 'Round ended.',
+            secretLine: '',
+            plain: false,
+        };
+    }
+
     const spies = Array.isArray(result.spies) ? result.spies : [];
     const accused = result.accused;
 
@@ -1225,6 +1378,7 @@ socket.on('spy_room_created', (data) => {
     currentRoomCode = data.room_code;
     if (data.settings) gameSettings = data.settings;
     applyRoomHostName(data.host_name);
+    /* Add room code to URL */
     window.history.pushState({}, '', `/spy-in-ithaca/${currentRoomCode}`);
     updateInviteLinkUI();
     updatePlayersEverywhere(data.players);
@@ -1250,7 +1404,39 @@ socket.on('spy_player_kicked', (data) => {
         err.textContent = 'You were removed from the game.';
         err.classList.add('show');
         document.getElementById('screen-name').style.display = 'flex';
+        hideKickPickDialog();
+        hideKickConfirmDialog();
+        hideDisconnectChoiceDialog();
+        return;
     }
+    disconnectedPlayers.delete(data.player);
+});
+
+socket.on('spy_disconnect_prompt', (data) => {
+    if (data.player) disconnectedPlayers.add(data.player);
+    showDisconnectChoiceDialog(data);
+    renderGamePlayers(playersListCache);
+});
+
+socket.on('spy_disconnect_dismissed', () => {
+    hideDisconnectChoiceDialog();
+});
+
+socket.on('spy_player_disconnected', (data) => {
+    if (data.player) disconnectedPlayers.add(data.player);
+    if (data.players) {
+        updatePlayersEverywhere(data.players);
+    } else {
+        renderGamePlayers(playersListCache);
+    }
+    if (data.message) {
+        showGameBanner(data.message);
+    }
+});
+
+socket.on('spy_player_left', (data) => {
+    if (data.player) disconnectedPlayers.delete(data.player);
+    if (data.players) updatePlayersEverywhere(data.players);
 });
 
 socket.on('spy_player_renamed', (data) => {
@@ -1674,7 +1860,7 @@ function hideNewRoundDialog() {
 }
 
 document.getElementById('new-round-btn').addEventListener('click', () => {
-    if (!currentRoomCode || !playerName) return;
+    if (!currentRoomCode || !playerName || !isRoomHost()) return;
     showNewRoundDialog();
 });
 
@@ -1689,6 +1875,44 @@ document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape') return;
     const dialog = document.getElementById('new-round-dialog');
     if (dialog?.classList.contains('is-open')) hideNewRoundDialog();
+    const kickPickDialog = document.getElementById('kick-pick-dialog');
+    if (kickPickDialog?.classList.contains('is-open')) hideKickPickDialog();
+    const kickDialog = document.getElementById('kick-confirm-dialog');
+    if (kickDialog?.classList.contains('is-open')) hideKickConfirmDialog();
+});
+
+const gameKickBtn = document.getElementById('game-kick-btn');
+if (gameKickBtn) {
+    gameKickBtn.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!currentRoomCode || !playerName) return;
+        showKickPickDialog();
+    });
+}
+
+document.getElementById('kick-pick-ok-btn')?.addEventListener('click', proceedKickPickDialog);
+document.getElementById('kick-pick-dialog-close')?.addEventListener('click', hideKickPickDialog);
+document.getElementById('kick-pick-dialog-backdrop')?.addEventListener('click', hideKickPickDialog);
+
+document.getElementById('kick-confirm-dialog-close')?.addEventListener('click', hideKickConfirmDialog);
+document.getElementById('kick-confirm-cancel-btn')?.addEventListener('click', hideKickConfirmDialog);
+document.getElementById('kick-confirm-dialog-backdrop')?.addEventListener('click', hideKickConfirmDialog);
+document.getElementById('kick-confirm-confirm-btn')?.addEventListener('click', confirmKickPlayer);
+
+function submitDisconnectChoice(choice) {
+    hideDisconnectChoiceDialog();
+    emitWithPlayer('spy_disconnect_choice', { choice });
+}
+
+document.getElementById('disconnect-choice-keep-btn')?.addEventListener('click', () => {
+    submitDisconnectChoice('keep');
+});
+document.getElementById('disconnect-choice-kick-btn')?.addEventListener('click', () => {
+    submitDisconnectChoice('kick');
+});
+document.getElementById('disconnect-choice-new-round-btn')?.addEventListener('click', () => {
+    submitDisconnectChoice('new_round');
 });
 
 document.getElementById('back-to-main-btn').addEventListener('click', () => {
