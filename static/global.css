@@ -879,7 +879,7 @@ body.light-theme .game-restart-round-btn:hover {
 }
 
 .game-kick-player-btn {
-    position: fixed;
+    position: absolute;
     top: calc(1rem + 2.5rem + 0.85rem);
     right: calc(1rem + 0.25rem);
     z-index: 99;
