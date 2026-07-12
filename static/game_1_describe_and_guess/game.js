@@ -618,7 +618,7 @@ socket.on('error', (data) => {
         // Hide the name input screen
         document.getElementById('screen-name').style.display = 'none';
         // Show the error message screen with a button to go home
-        document.getElementById('screen-error').style.display = 'block';
+        document.getElementById('screen-error').style.display = 'flex';
     } else if (data.message === 'This name is already taken. Please choose another.') {
         finalizePendingJoin();
         document.getElementById('screen-waiting').style.display = 'none';
@@ -845,7 +845,7 @@ if (roomToJoin) {
             pendingRoomJoin = true;
         } else {
             document.getElementById('screen-name').style.display = 'none';
-            document.getElementById('screen-error').style.display = 'block';
+            document.getElementById('screen-error').style.display = 'flex';
         }
     });
 } else {

@@ -9,23 +9,6 @@
 </head>
 
 <body class="page-game">
-    <button id="theme-toggle" class="theme-toggle" title="Switch theme">🌓</button>
-    <button
-        id="new-round-btn"
-        class="game-restart-round-btn"
-        type="button"
-        style="display: none;"
-        title="Restart round"
-        aria-label="Restart round"
-    >
-        <svg class="game-restart-round-icon" viewBox="0 0 24 24" aria-hidden="true">
-            <path
-                fill="currentColor"
-                d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"
-            />
-        </svg>
-    </button>
-
     <button
         id="game-kick-btn"
         class="game-kick-player-btn"
@@ -36,7 +19,23 @@
     >&times;</button>
 
     <div class="main-card"> <!-- Light card with rounded corners - purely decorative -->
+        <button
+            id="new-round-btn"
+            class="game-restart-round-btn"
+            type="button"
+            style="display: none;"
+            title="Restart round"
+            aria-label="Restart round"
+        >
+            <svg class="game-restart-round-icon" viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                    fill="currentColor"
+                    d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46A7.93 7.93 0 0 0 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74A7.93 7.93 0 0 0 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"
+                />
+            </svg>
+        </button>
 
+        <button id="theme-toggle" class="theme-toggle" title="Switch theme">🌓</button>
         <!-- Screen 1: enter your name -->
         <div id="screen-name">
             <h1>Enter your name</h1>
