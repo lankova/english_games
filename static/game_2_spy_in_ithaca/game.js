@@ -651,7 +651,8 @@ function collectSettingsPayload() {
 
     return {
         spy_count: parseInt(document.getElementById('setting-spy-count').value, 10),
-        extra_roles: document.getElementById('setting-extra-roles').checked,
+        // Extra roles UI is disabled for now; always send false.
+        extra_roles: false,
         round_duration_sec: minutes,
         location_set: document.getElementById('setting-location-set').value,
     };
@@ -1745,7 +1746,8 @@ function handleSpyLobbyCatClick(event) {
 
 document.getElementById('spy-lobby-cat')?.addEventListener('click', handleSpyLobbyCatClick);
 
-['setting-spy-count', 'setting-extra-roles', 'setting-duration', 'setting-location-set'].forEach((id) => {
+// 'setting-extra-roles' omitted while Extra roles UI is hidden
+['setting-spy-count', 'setting-duration', 'setting-location-set'].forEach((id) => {
     document.getElementById(id).addEventListener('change', () => {
         if (document.getElementById('screen-waiting').style.display === 'flex') {
             emitSettingsUpdate();
