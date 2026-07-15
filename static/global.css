@@ -1855,6 +1855,7 @@ body.light-theme .game-kick-player-btn.is-active {
 .role-reveal-line strong {
     color: var(--text);
     font-size: 1.15rem;
+    white-space: pre-line;
 }
 
 .role-reveal-location-line {
@@ -2203,6 +2204,7 @@ body.light-theme .role-reveal-screen .ok-button {
     font-size: 1.3rem;
     font-weight: 700;
     color: var(--accent);
+    white-space: pre-line;
 }
 
 .info-role {
@@ -2297,6 +2299,7 @@ body.light-theme .role-reveal-screen .ok-button {
     line-height: 1.2;
     word-break: break-word;
     hyphens: auto;
+    white-space: pre-line;
 }
 
 .location-card-mark {
