@@ -28,7 +28,7 @@ let isHost = false;  // Track if current player is the room host
 let hostName = null;
 let hostToken = null;
 let allCardsDone = false;
-let lobbySettings = { word_set: 'easy', explainer: null, suggested_explainer: null };
+let lobbySettings = { word_set: 'odyssey', explainer: null, suggested_explainer: null };
 let playersListCache = [];
 let pendingRoomJoin = false;
 let pendingLobbyRevealTimer = null;
@@ -209,7 +209,7 @@ function populateExplainerSelect(players, settings) {
 
 function readSettingsFromUI() {
     return {
-        word_set: document.getElementById('setting-word-set')?.value || 'easy',
+        word_set: document.getElementById('setting-word-set')?.value || 'odyssey',
         explainer: document.getElementById('setting-explainer')?.value || playersListCache[0] || '',
     };
 }

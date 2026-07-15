@@ -34,15 +34,15 @@ def _word_list_for_set(word_set):
     data = _load_all_words()
     if isinstance(data, list):
         return list(data)
-    return list(data.get(word_set, data.get('easy', [])))
+    return list(data.get(word_set, data.get('odyssey', data.get('easy', []))))
 
 
 def _default_settings():
-    return {'word_set': 'easy', 'explainer': _ROTATE_EXPLAINER}
+    return {'word_set': 'odyssey', 'explainer': _ROTATE_EXPLAINER}
 
 
 def _init_word_pool(room_data):
-    word_set = room_data.get('settings', _default_settings()).get('word_set', 'easy')
+    word_set = room_data.get('settings', _default_settings()).get('word_set', 'odyssey')
     words = _word_list_for_set(word_set)
     random.shuffle(words)
     room_data['word_pool'] = words
@@ -169,7 +169,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         if explainer == _ROTATE_EXPLAINER or explainer not in players:
             explainer = suggested
         return {
-            'word_set': settings.get('word_set', 'easy'),
+            'word_set': settings.get('word_set', 'odyssey'),
             'explainer': explainer,
             'suggested_explainer': suggested,
         }
