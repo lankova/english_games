@@ -1,7 +1,7 @@
 from gevent import monkey
 monkey.patch_all()
 
-from flask import Flask, render_template
+from flask import Flask, render_template, request, url_for as flask_url_for
 from flask_socketio import SocketIO
 import os
 from shared.database import save_room_to_db
@@ -26,6 +26,40 @@ socketio = SocketIO(app, cors_allowed_origins=[
 
 rooms_game1 = {}
 rooms_game2 = {}
+
+
+@app.context_processor
+def override_url_for():
+    """Append file mtime to static URLs so browsers fetch new CSS/JS after deploy."""
+
+    def dated_url_for(endpoint, **values):
+        if endpoint == "static":
+            filename = values.get("filename")
+            if filename and app.static_folder:
+                file_path = os.path.join(app.static_folder, filename)
+                if os.path.isfile(file_path):
+                    values["v"] = int(os.path.getmtime(file_path))
+        return flask_url_for(endpoint, **values)
+
+    return dict(url_for=dated_url_for)
+
+
+@app.after_request
+def set_cache_headers(response):
+    """
+    HTML is never long-cached (so players pick up new ?v= static URLs).
+    Versioned /static/ files can be cached; API payloads stay fresh.
+    """
+    content_type = response.content_type or ""
+    if "text/html" in content_type:
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    elif request.path.startswith("/static/"):
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    elif request.path.startswith("/api/"):
+        response.headers["Cache-Control"] = "no-cache, must-revalidate"
+    return response
 
 
 @app.route('/')
