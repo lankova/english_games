@@ -1,6 +1,7 @@
 {
   "locations": [
     {"name": "Battlefield"},
+    {"name": "Calypso's Island"},
     {"name": "Demeter's Garden"},
     {"name": "Island of Circe\n/ˈsɜːr.si/"},
     {"name": "Island of the Cyclopes"},
@@ -11,7 +12,6 @@
     {"name": "Marketplace in Ancient Greece"},
     {"name": "Mountain Cave"},
     {"name": "Mount Olympus"},
-    {"name": "Ogygia\n/oʊˈdʒɪdʒ.i.ə/ (Calypso's Island)"},
     {"name": "Penelope's Palace"},
     {"name": "Scylla and Charybdis"},
     {"name": "Ship at Sea"},
