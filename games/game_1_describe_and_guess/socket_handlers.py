@@ -41,24 +41,37 @@ def _default_settings():
     return {'word_set': 'odyssey', 'explainer': _ROTATE_EXPLAINER}
 
 
+def _word_set_for_room(room_data):
+    return room_data.get('settings', _default_settings()).get('word_set', 'odyssey')
+
+
 def _init_word_pool(room_data):
-    word_set = room_data.get('settings', _default_settings()).get('word_set', 'odyssey')
+    word_set = _word_set_for_room(room_data)
     words = _word_list_for_set(word_set)
     random.shuffle(words)
     room_data['word_pool'] = words
     room_data['word_pool_index'] = 0
+    room_data['word_pool_set'] = word_set
+
+
+def _ensure_word_pool(room_data):
+    word_set = _word_set_for_room(room_data)
+    if not room_data.get('word_pool') or room_data.get('word_pool_set') != word_set:
+        _init_word_pool(room_data)
 
 
 def _next_word(room_data):
-    pool = room_data.get("word_pool")
+    _ensure_word_pool(room_data)
+    pool = room_data['word_pool']
     if not pool:
-        _init_word_pool(room_data)
-        pool = room_data["word_pool"]
-    idx = room_data.get("word_pool_index", 0)
-    if idx >= len(pool):
         return None
+    idx = room_data.get('word_pool_index', 0)
+    if idx >= len(pool):
+        random.shuffle(pool)
+        room_data['word_pool_index'] = 0
+        idx = 0
     word = pool[idx]
-    room_data["word_pool_index"] = idx + 1
+    room_data['word_pool_index'] = idx + 1
     return word
 
 
@@ -225,9 +238,12 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
 
     def _apply_settings(room_data, data):
         settings = room_data.setdefault('settings', _default_settings())
+        prev_word_set = settings.get('word_set', 'odyssey')
         word_set = data.get('word_set')
         if word_set in _WORD_SET_KEYS:
             settings['word_set'] = word_set
+        if settings.get('word_set') != prev_word_set:
+            _init_word_pool(room_data)
         explainer = data.get('explainer')
         if explainer in room_data.get('players', {}):
             settings['explainer'] = explainer
@@ -250,7 +266,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         room_data['game_started'] = True
         room_data['all_cards_done'] = False
         room_data['round_ended'] = False
-        _init_word_pool(room_data)
+        _ensure_word_pool(room_data)
         room_data['explainer'] = explainer
         room_data['round_active'] = True
         room_data.pop('last_round', None)
@@ -437,7 +453,7 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         if not room_data.get('game_started'):
             room_data['game_started'] = True
             room_data['all_cards_done'] = False
-            _init_word_pool(room_data)
+            _ensure_word_pool(room_data)
         room_data['explainer'] = player_name
         room_data['round_active'] = True
 
@@ -791,6 +807,9 @@ def register_handlers(socketio, rooms_ref, save_room_fn, generate_code_fn):
         room_data.pop('last_round', None)
         room_data['settings'] = _default_settings()
         room_data['explainer_index'] = 0
+        room_data.pop('word_pool', None)
+        room_data.pop('word_pool_index', None)
+        room_data.pop('word_pool_set', None)
         players = _players_list(room_data)
         if players:
             room_data['settings']['explainer'] = players[0]

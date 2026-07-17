@@ -519,6 +519,113 @@ class TestDnGStateManagement:
         assert len(scoreboard_events_second) == 0, \
             "Second round_end should be ignored and not emit another scoreboard_update"
 
+    @allure.story("Word pool across rounds")
+    @allure.title("Words should not repeat across rounds until the pool is exhausted")
+    @allure.severity(allure.severity_level.NORMAL)
+    def test_word_pool_persists_across_rounds(self, host_client, monkeypatch):
+        from games.game_1_describe_and_guess import socket_handlers as sh
+
+        client, room_code, _ = host_client
+        words = ['alpha', 'beta', 'gamma', 'delta', 'epsilon']
+        monkeypatch.setattr(sh, '_word_list_for_set', lambda word_set: list(words))
+
+        client.emit('start_game', {
+            'room_code': room_code,
+            'explainer': 'Alice',
+            'word_set': 'easy',
+        })
+        client.get_received()
+
+        room = rooms[room_code]
+        round_one = [sh._next_word(room) for _ in range(3)]
+        assert len(set(round_one)) == 3
+
+        client.emit('round_end', {
+            'room_code': room_code,
+            'player': 'Alice',
+            'round_score': 3,
+        })
+        client.get_received()
+
+        client.emit('next_round', {'room_code': room_code})
+        client.get_received()
+
+        client.emit('start_game', {
+            'room_code': room_code,
+            'explainer': 'Alice',
+            'word_set': 'easy',
+        })
+        client.get_received()
+
+        round_two_first = sh._next_word(room)
+        assert round_two_first not in round_one
+        assert room['word_pool_index'] == 4
+
+    @allure.story("Word pool exhaustion")
+    @allure.title("Exhausted word pool should reshuffle instead of stopping")
+    @allure.severity(allure.severity_level.NORMAL)
+    def test_word_pool_reshuffles_when_exhausted(self, host_client, monkeypatch):
+        from games.game_1_describe_and_guess import socket_handlers as sh
+
+        client, room_code, _ = host_client
+        words = ['alpha', 'beta', 'gamma']
+        monkeypatch.setattr(sh, '_word_list_for_set', lambda word_set: list(words))
+
+        client.emit('start_game', {
+            'room_code': room_code,
+            'explainer': 'Alice',
+            'word_set': 'easy',
+        })
+        client.get_received()
+
+        room = rooms[room_code]
+        seen = [sh._next_word(room) for _ in range(3)]
+        assert set(seen) == set(words)
+
+        extra = sh._next_word(room)
+        assert extra in words
+        assert room['word_pool_index'] == 1
+
+    @allure.story("Word pool reset")
+    @allure.title("New game should reset the shared word pool")
+    @allure.severity(allure.severity_level.NORMAL)
+    def test_new_game_resets_word_pool(self, host_client, monkeypatch):
+        from games.game_1_describe_and_guess import socket_handlers as sh
+
+        client, room_code, _ = host_client
+        words = ['alpha', 'beta', 'gamma', 'delta', 'epsilon']
+        monkeypatch.setattr(sh, '_word_list_for_set', lambda word_set: list(words))
+
+        client.emit('start_game', {
+            'room_code': room_code,
+            'explainer': 'Alice',
+            'word_set': 'easy',
+        })
+        client.get_received()
+
+        room = rooms[room_code]
+        sh._next_word(room)
+        sh._next_word(room)
+        assert room['word_pool_index'] == 2
+
+        client.emit('new_game', {'room_code': room_code})
+        client.get_received()
+
+        assert 'word_pool' not in room
+        assert 'word_pool_index' not in room
+        assert 'word_pool_set' not in room
+
+        client.emit('start_game', {
+            'room_code': room_code,
+            'explainer': 'Alice',
+            'word_set': 'easy',
+        })
+        client.get_received()
+
+        first_after_reset = sh._next_word(room)
+        assert first_after_reset in words
+        assert room['word_pool_index'] == 1
+
 
 # ======================
 # TIMER CONTROLS TESTS
